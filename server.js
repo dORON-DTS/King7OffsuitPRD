@@ -213,37 +213,51 @@ const authorize = (roles) => {
 
 // Routes
 app.post('/api/login', (req, res) => {
+  console.log('[Login] Attempting login for user:', req.body.username);
   const { username, password } = req.body;
+
+  if (!username || !password) {
+    console.log('[Login] Missing username or password');
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
 
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      console.error('[Login] Database error:', err.message);
+      return res.status(500).json({ error: 'Internal server error' });
     }
 
     if (!user) {
-      res.status(401).json({ error: 'Invalid credentials' });
-      return;
+      console.log('[Login] User not found:', username);
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    console.log('[Login] User found, comparing password');
     bcrypt.compare(password, user.password, (err, match) => {
       if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+        console.error('[Login] Password comparison error:', err.message);
+        return res.status(500).json({ error: 'Internal server error' });
       }
 
       if (!match) {
-        res.status(401).json({ error: 'Invalid credentials' });
-        return;
+        console.log('[Login] Password mismatch for user:', username);
+        return res.status(401).json({ error: 'Invalid credentials' });
       }
 
+      console.log('[Login] Password match, generating token');
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
         JWT_SECRET,
         { expiresIn: '24h' }
       );
 
-      res.json({ token, username: user.username, role: user.role });
+      console.log('[Login] Login successful for user:', username);
+      res.json({ 
+        token, 
+        username: user.username, 
+        role: user.role,
+        id: user.id
+      });
     });
   });
 });
