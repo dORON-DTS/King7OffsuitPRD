@@ -92,6 +92,45 @@ function backupDatabase() {
 // Schedule daily backups
 setInterval(backupDatabase, 24 * 60 * 60 * 1000);
 
+// Function to update user passwords
+function updateUserPasswords() {
+  console.log('[Password Update] Starting password update process');
+  
+  const users = [
+    { username: 'Ran', password: 'Rabad123456' },
+    { username: 'Bar', password: 'Baroni123456' },
+    { username: 'OdedD', password: '123456789' },
+    { username: 'OrAz', password: '123456789' },
+    { username: 'Maor', password: 'Rocky123456' },
+    { username: 'Omer', password: 'Tavor123456' },
+    { username: 'Iftach', password: 'Iftach123' },
+    { username: 'Ali', password: 'Sarsur123' },
+    { username: 'Daniel', password: '1234' },
+    { username: 'Denis', password: '1234' }
+  ];
+
+  users.forEach(user => {
+    bcrypt.hash(user.password, 10, (err, hash) => {
+      if (err) {
+        console.error(`[Password Update] Error hashing password for ${user.username}:`, err);
+        return;
+      }
+
+      db.run(
+        'UPDATE users SET password = ? WHERE username = ?',
+        [hash, user.username],
+        function(err) {
+          if (err) {
+            console.error(`[Password Update] Error updating password for ${user.username}:`, err);
+          } else {
+            console.log(`[Password Update] Successfully updated password for ${user.username}`);
+          }
+        }
+      );
+    });
+  });
+}
+
 // Database initialization
 function initializeDatabase() {
   console.log('[Init] Starting database initialization');
@@ -224,6 +263,9 @@ function initializeDatabase() {
         }
       );
     });
+
+    // After creating tables and admin user
+    updateUserPasswords();
   });
 }
 
@@ -293,106 +335,58 @@ app.post('/api/login', (req, res) => {
   console.log('[Login] Request received:', {
     body: { ...req.body, password: req.body.password ? '***' : undefined },
     headers: req.headers,
-    ip: req.ip,
-    timestamp: new Date().toISOString()
+    ip: req.ip
   });
 
   const { username, password } = req.body;
-
   if (!username || !password) {
-    console.log('[Login] Missing credentials:', { 
-      username: !!username, 
-      password: !!password,
-      body: req.body
-    });
-    return res.status(400).json({ error: 'Username and password are required' });
+    console.log('[Login] Missing credentials:', { username: !!username, password: !!password });
+    return res.status(400).json({ message: 'Username and password are required' });
   }
 
-  console.log('[Login] Querying database for user:', username);
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err) {
-      console.error('[Login] Database error:', {
-        message: err.message,
-        code: err.code,
-        stack: err.stack,
-        sql: this.sql,
-        params: this.params
-      });
-      return res.status(500).json({ error: 'Internal server error' });
+      console.error('[Login] Database error:', err);
+      return res.status(500).json({ message: 'Database error' });
     }
 
-    if (!user) {
-      console.log('[Login] User not found:', username);
-      // Log all users to help debug
-      db.all('SELECT id, username, role FROM users', [], (err, users) => {
-        if (err) {
-          console.error('[Login] Error fetching all users:', err);
-        } else {
-          console.log('[Login] All users in database:', users.map(u => ({
-            id: u.id,
-            username: u.username,
-            role: u.role
-          })));
-        }
-      });
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    console.log('[Login] User found:', { 
-      id: user.id, 
-      username: user.username, 
-      role: user.role,
-      hasPassword: !!user.password,
-      passwordLength: user.password ? user.password.length : 0
+    console.log('[Login] User found:', {
+      id: user?.id,
+      username: user?.username,
+      role: user?.role,
+      hasPassword: !!user?.password
     });
-    
-    console.log('[Login] Starting password comparison');
-    bcrypt.compare(password, user.password, (err, match) => {
+
+    if (!user || !user.password) {
+      console.log('[Login] User not found or has no password');
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    bcrypt.compare(password, user.password, (err, isMatch) => {
       if (err) {
-        console.error('[Login] Password comparison error:', {
-          message: err.message,
-          stack: err.stack
-        });
-        return res.status(500).json({ error: 'Internal server error' });
+        console.error('[Login] Password comparison error:', err);
+        return res.status(500).json({ message: 'Authentication error' });
       }
 
-      console.log('[Login] Password comparison result:', {
-        match,
-        providedPasswordLength: password.length,
-        storedPasswordLength: user.password.length
-      });
+      console.log('[Login] Password match result:', isMatch);
 
-      if (!match) {
-        console.log('[Login] Password mismatch for user:', username);
-        return res.status(401).json({ error: 'Invalid credentials' });
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
       }
 
-      console.log('[Login] Password match, generating token');
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
-        JWT_SECRET,
+        process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '24h' }
       );
 
-      console.log('[Login] Login successful for user:', {
+      console.log('[Login] Token generated for user:', {
+        id: user.id,
         username: user.username,
-        role: user.role,
-        tokenLength: token.length,
-        tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        role: user.role
       });
 
-      const response = { 
-        token, 
-        username: user.username, 
-        role: user.role,
-        id: user.id
-      };
-      console.log('[Login] Sending response:', { 
-        ...response, 
-        token: '***',
-        status: 'success'
-      });
-      res.json(response);
+      res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
     });
   });
 });
@@ -715,32 +709,25 @@ app.put('/api/tables/:tableId/players/:playerId/showme', authenticate, authorize
 
 // Get current user info
 app.get('/api/users/me', authenticate, (req, res) => {
-  console.log('[Users/Me] Getting user info for:', req.user.id);
-  console.log('[Users/Me] User object from token:', req.user);
-  
-  db.get('SELECT id, username, role, createdAt FROM users WHERE id = ?', [req.user.id], (err, user) => {
+  console.log('[Users/Me] Request received:', {
+    user: req.user,
+    headers: req.headers,
+    ip: req.ip
+  });
+
+  db.get('SELECT id, username, role FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err) {
-      console.error('[Users/Me] Database error:', err.message);
-      return res.status(500).json({ error: err.message });
+      console.error('[Users/Me] Database error:', err);
+      return res.status(500).json({ message: 'Database error' });
     }
+
+    console.log('[Users/Me] User found:', user);
 
     if (!user) {
-      console.log('[Users/Me] User not found in database:', req.user.id);
-      console.log('[Users/Me] Checking all users in database...');
-      
-      // Log all users in database
-      db.all('SELECT id, username, role FROM users', [], (err, users) => {
-        if (err) {
-          console.error('[Users/Me] Error fetching all users:', err);
-        } else {
-          console.log('[Users/Me] All users in database:', users);
-        }
-      });
-      
-      return res.status(404).json({ error: 'User not found' });
+      console.log('[Users/Me] User not found');
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('[Users/Me] Found user in database:', user);
     res.json(user);
   });
 });
@@ -1007,6 +994,135 @@ app.get('/api/tables/:id', authenticate, (req, res) => {
           });
           res.status(500).json({ error: 'Internal server error' });
         });
+    });
+  });
+});
+
+// Add a new endpoint to update passwords
+app.post('/api/update-passwords', authenticate, authorize(['admin']), (req, res) => {
+  console.log('[Password Update] Starting password update process');
+  
+  const users = [
+    { username: 'Ran', password: 'Rabad123456' },
+    { username: 'Bar', password: 'Baroni123456' },
+    { username: 'OdedD', password: '123456789' },
+    { username: 'OrAz', password: '123456789' },
+    { username: 'Maor', password: 'Rocky123456' },
+    { username: 'Omer', password: 'Tavor123456' },
+    { username: 'Iftach', password: 'Iftach123' },
+    { username: 'Ali', password: 'Sarsur123' },
+    { username: 'Daniel', password: '1234' },
+    { username: 'Denis', password: '1234' }
+  ];
+
+  let completed = 0;
+  let errors = [];
+
+  users.forEach(user => {
+    bcrypt.hash(user.password, 10, (err, hash) => {
+      if (err) {
+        console.error(`[Password Update] Error hashing password for ${user.username}:`, err);
+        errors.push({ username: user.username, error: err.message });
+        checkCompletion();
+        return;
+      }
+
+      db.run(
+        'UPDATE users SET password = ? WHERE username = ?',
+        [hash, user.username],
+        function(err) {
+          if (err) {
+            console.error(`[Password Update] Error updating password for ${user.username}:`, err);
+            errors.push({ username: user.username, error: err.message });
+          } else {
+            console.log(`[Password Update] Successfully updated password for ${user.username}`);
+          }
+          completed++;
+          checkCompletion();
+        }
+      );
+    });
+  });
+
+  function checkCompletion() {
+    if (completed === users.length) {
+      if (errors.length > 0) {
+        res.status(500).json({ 
+          message: 'Some passwords failed to update',
+          errors 
+        });
+      } else {
+        res.json({ message: 'All passwords updated successfully' });
+      }
+    }
+  }
+});
+
+// Register new user
+app.post('/api/register', authenticate, authorize(['admin']), (req, res) => {
+  console.log('[Register] Request received:', {
+    body: { ...req.body, password: req.body.password ? '***' : undefined },
+    user: req.user,
+    timestamp: new Date().toISOString()
+  });
+
+  const { username, password, role } = req.body;
+  if (!username || !password || !role) {
+    console.log('[Register] Missing required fields:', {
+      username: !!username,
+      password: !!password,
+      role: !!role
+    });
+    return res.status(400).json({ error: 'Username, password and role are required' });
+  }
+
+  // Check if username already exists
+  db.get('SELECT * FROM users WHERE username = ?', [username], (err, existingUser) => {
+    if (err) {
+      console.error('[Register] Database error checking username:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (existingUser) {
+      console.log('[Register] Username already exists:', username);
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    // Hash password
+    bcrypt.hash(password, 10, (err, hash) => {
+      if (err) {
+        console.error('[Register] Error hashing password:', err);
+        return res.status(500).json({ error: 'Error creating user' });
+      }
+
+      const id = uuidv4();
+      const createdAt = new Date().toISOString();
+
+      // Insert new user
+      db.run(
+        'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
+        [id, username, hash, role, createdAt],
+        function(err) {
+          if (err) {
+            console.error('[Register] Error inserting user:', err);
+            return res.status(500).json({ error: 'Error creating user' });
+          }
+
+          console.log('[Register] User created successfully:', {
+            id,
+            username,
+            role,
+            createdAt
+          });
+
+          res.status(201).json({
+            id,
+            username,
+            role,
+            createdAt
+          });
+        }
+      );
     });
   });
 });
