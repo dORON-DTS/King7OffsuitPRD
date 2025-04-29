@@ -873,6 +873,7 @@ app.post('/api/update-passwords', authenticate, authorize(['admin']), (req, res)
   console.log('[Password Update] Starting password update process');
   
   const users = [
+    { username: 'Doron', password: '365Scores!' },
     { username: 'Ran', password: 'Rabad123456' },
     { username: 'Bar', password: 'Baroni123456' },
     { username: 'OdedD', password: '123456789' },
