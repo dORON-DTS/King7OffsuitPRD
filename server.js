@@ -238,34 +238,48 @@ const authenticate = (req, res, next) => {
   console.log('[Auth] Request received:', {
     path: req.path,
     method: req.method,
-    headers: req.headers,
-    ip: req.ip
+    headers: {
+      ...req.headers,
+      authorization: req.headers.authorization ? 'Bearer ***' : undefined
+    },
+    ip: req.ip,
+    timestamp: new Date().toISOString()
   });
 
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    console.log('[Auth] No authorization header found');
+    console.log('[Auth] No authorization header found for path:', req.path);
     return res.status(401).json({ error: 'No token provided' });
   }
 
   const token = authHeader.split(' ')[1];
   if (!token) {
-    console.log('[Auth] Invalid authorization header format:', authHeader);
+    console.log('[Auth] Invalid authorization header format:', {
+      header: authHeader,
+      path: req.path
+    });
     return res.status(401).json({ error: 'Invalid token format' });
   }
 
   try {
-    console.log('[Auth] Verifying token');
+    console.log('[Auth] Verifying token for path:', req.path);
     const decoded = jwt.verify(token, JWT_SECRET);
     console.log('[Auth] Token verified successfully:', {
       id: decoded.id,
       username: decoded.username,
-      role: decoded.role
+      role: decoded.role,
+      path: req.path,
+      iat: new Date(decoded.iat * 1000).toISOString(),
+      exp: new Date(decoded.exp * 1000).toISOString()
     });
     req.user = decoded;
     next();
   } catch (err) {
-    console.log('[Auth] Token verification failed:', err.message);
+    console.log('[Auth] Token verification failed:', {
+      error: err.message,
+      path: req.path,
+      token: token.substring(0, 10) + '...'
+    });
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -369,7 +383,8 @@ app.post('/api/login', (req, res) => {
       console.log('[Login] Login successful for user:', {
         username: user.username,
         role: user.role,
-        tokenLength: token.length
+        tokenLength: token.length,
+        tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       });
 
       const response = { 
@@ -912,7 +927,11 @@ app.get('/api/tables/:id', authenticate, (req, res) => {
   console.log('[Tables] Fetching table by ID:', {
     tableId,
     user: req.user,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    headers: {
+      ...req.headers,
+      authorization: req.headers.authorization ? 'Bearer ***' : undefined
+    }
   });
 
   db.get('SELECT * FROM tables WHERE id = ?', [tableId], (err, table) => {
@@ -920,30 +939,41 @@ app.get('/api/tables/:id', authenticate, (req, res) => {
       console.error('[Tables] Database error:', {
         message: err.message,
         code: err.code,
-        stack: err.stack
+        stack: err.stack,
+        tableId
       });
       return res.status(500).json({ error: 'Internal server error' });
     }
 
     if (!table) {
-      console.log('[Tables] Table not found:', tableId);
+      console.log('[Tables] Table not found:', {
+        tableId,
+        user: req.user
+      });
       return res.status(404).json({ error: 'Table not found' });
     }
 
     console.log('[Tables] Table found:', {
       id: table.id,
       name: table.name,
-      isActive: table.isActive
+      isActive: table.isActive,
+      user: req.user
     });
 
     // Get players for the table
     db.all('SELECT * FROM players WHERE tableId = ?', [tableId], (err, players) => {
       if (err) {
-        console.error('[Tables] Error fetching players:', err);
+        console.error('[Tables] Error fetching players:', {
+          error: err.message,
+          tableId
+        });
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      console.log('[Tables] Found players:', players.length);
+      console.log('[Tables] Found players:', {
+        count: players.length,
+        tableId
+      });
 
       const playerPromises = players.map(player => {
         return new Promise((resolve, reject) => {
@@ -971,12 +1001,16 @@ app.get('/api/tables/:id', authenticate, (req, res) => {
         .then(playersWithTransactions => {
           console.log('[Tables] Sending response:', {
             tableId,
-            playerCount: playersWithTransactions.length
+            playerCount: playersWithTransactions.length,
+            user: req.user
           });
           res.json({ ...table, players: playersWithTransactions });
         })
         .catch(err => {
-          console.error('[Tables] Error processing players:', err);
+          console.error('[Tables] Error processing players:', {
+            error: err.message,
+            tableId
+          });
           res.status(500).json({ error: 'Internal server error' });
         });
     });
