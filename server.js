@@ -28,9 +28,6 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('combined'));
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'build')));
-
 // Database setup
 const dbPath = process.env.RENDER ? 
   '/opt/render/project/src/data/poker.db' : 
@@ -722,6 +719,9 @@ app.get('/api/debug/db', (req, res) => {
     });
   });
 });
+
+// Serve static files from the React app (moved after API routes)
+app.use(express.static(path.join(__dirname, 'build')));
 
 // Catch all other routes and return the React app
 app.get('*', (req, res) => {
