@@ -739,7 +739,8 @@ app.get('/api/users', authenticate, authorize(['admin']), (req, res) => {
   console.log('[Users] Fetching all users - Request received:', {
     user: req.user,
     headers: req.headers,
-    ip: req.ip
+    ip: req.ip,
+    timestamp: new Date().toISOString()
   });
 
   console.log('[Users] Executing database query');
@@ -758,23 +759,96 @@ app.get('/api/users', authenticate, authorize(['admin']), (req, res) => {
       users: users.map(u => ({ id: u.id, username: u.username, role: u.role }))
     });
 
-    // Log database file status
-    console.log('[Users] Database file status:', {
-      exists: fs.existsSync(dbPath),
-      path: dbPath,
-      size: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 'N/A'
-    });
-
-    // Verify database connection
-    db.get('SELECT COUNT(*) as count FROM users', [], (err, result) => {
-      if (err) {
-        console.error('[Users] Error verifying database connection:', err);
-      } else {
-        console.log('[Users] Database connection verified. User count:', result.count);
-      }
-    });
-
     res.json(users);
+  });
+});
+
+// Delete user
+app.delete('/api/users/:id', authenticate, authorize(['admin']), (req, res) => {
+  const userId = req.params.id;
+  console.log('[Users] Delete request received:', {
+    userId,
+    requestingUser: req.user,
+    timestamp: new Date().toISOString()
+  });
+
+  // First check if user exists
+  db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+    if (err) {
+      console.error('[Users] Error checking user existence:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (!user) {
+      console.log('[Users] User not found for deletion:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('[Users] User found, proceeding with deletion:', {
+      id: user.id,
+      username: user.username,
+      role: user.role
+    });
+
+    db.run('DELETE FROM users WHERE id = ?', [userId], function(err) {
+      if (err) {
+        console.error('[Users] Error deleting user:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      console.log('[Users] User deleted successfully:', {
+        userId,
+        rowsAffected: this.changes
+      });
+      res.json({ message: 'User deleted successfully' });
+    });
+  });
+});
+
+// Update user role
+app.put('/api/users/:id/role', authenticate, authorize(['admin']), (req, res) => {
+  const userId = req.params.id;
+  const { role } = req.body;
+
+  console.log('[Users] Role update request received:', {
+    userId,
+    newRole: role,
+    requestingUser: req.user,
+    timestamp: new Date().toISOString()
+  });
+
+  // First check if user exists
+  db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+    if (err) {
+      console.error('[Users] Error checking user existence:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (!user) {
+      console.log('[Users] User not found for role update:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('[Users] User found, proceeding with role update:', {
+      id: user.id,
+      username: user.username,
+      currentRole: user.role,
+      newRole: role
+    });
+
+    db.run('UPDATE users SET role = ? WHERE id = ?', [role, userId], function(err) {
+      if (err) {
+        console.error('[Users] Error updating user role:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      console.log('[Users] User role updated successfully:', {
+        userId,
+        newRole: role,
+        rowsAffected: this.changes
+      });
+      res.json({ message: 'User role updated successfully' });
+    });
   });
 });
 
