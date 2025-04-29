@@ -138,16 +138,8 @@ function initializeDatabase() {
   console.log('[Init] Database exists:', fs.existsSync(dbPath));
 
   db.serialize(() => {
-    // First, drop and recreate all tables to ensure clean state
-    console.log('[Init] Dropping existing tables');
-    db.run('DROP TABLE IF EXISTS users');
-    db.run('DROP TABLE IF EXISTS tables');
-    db.run('DROP TABLE IF EXISTS players');
-    db.run('DROP TABLE IF EXISTS buyins');
-    db.run('DROP TABLE IF EXISTS cashouts');
-
     // Users table
-    console.log('[Init] Creating users table');
+    console.log('[Init] Creating users table if not exists');
     db.run(`CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE,
@@ -200,34 +192,43 @@ function initializeDatabase() {
       FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
     )`);
 
-    // Create initial admin user
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    console.log('[Init] Creating admin user with password from:', process.env.ADMIN_PASSWORD ? 'environment' : 'default');
-    
-    bcrypt.hash(adminPassword, 10, (err, hash) => {
+    // Check if admin user exists
+    db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, admin) => {
       if (err) {
-        console.error('[Init] Error hashing admin password:', err);
+        console.error('[Init] Error checking admin user:', err);
         return;
       }
 
-      const adminId = uuidv4();
-      const createdAt = new Date().toISOString();
-      
-      db.run(
-        'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
-        [adminId, 'admin', hash, 'admin', createdAt],
-        function(err) {
+      if (!admin) {
+        // Create initial admin user only if it doesn't exist
+        const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+        console.log('[Init] Creating admin user with password from:', process.env.ADMIN_PASSWORD ? 'environment' : 'default');
+        
+        bcrypt.hash(adminPassword, 10, (err, hash) => {
           if (err) {
-            console.error('[Init] Error creating admin user:', err);
-          } else {
-            console.log('[Init] Admin user created successfully');
+            console.error('[Init] Error hashing admin password:', err);
+            return;
           }
-        }
-      );
-    });
 
-    // After creating tables and admin user
-    updateUserPasswords();
+          const adminId = uuidv4();
+          const createdAt = new Date().toISOString();
+          
+          db.run(
+            'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
+            [adminId, 'admin', hash, 'admin', createdAt],
+            function(err) {
+              if (err) {
+                console.error('[Init] Error creating admin user:', err);
+              } else {
+                console.log('[Init] Admin user created successfully');
+              }
+            }
+          );
+        });
+      } else {
+        console.log('[Init] Admin user already exists');
+      }
+    });
   });
 }
 
