@@ -136,148 +136,98 @@ function initializeDatabase() {
   console.log('[Init] Starting database initialization');
   console.log('[Init] Database path:', dbPath);
   console.log('[Init] Database exists:', fs.existsSync(dbPath));
-  console.log('[Init] Environment:', {
-    RENDER: process.env.RENDER,
-    PORT: process.env.PORT,
-    JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'not set',
-    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ? 'set' : 'not set'
-  });
 
   db.serialize(() => {
-    // Check if tables exist
-    db.all("SELECT name FROM sqlite_master WHERE type='table'", [], (err, tables) => {
+    // First, drop and recreate all tables to ensure clean state
+    console.log('[Init] Dropping existing tables');
+    db.run('DROP TABLE IF EXISTS users');
+    db.run('DROP TABLE IF EXISTS tables');
+    db.run('DROP TABLE IF EXISTS players');
+    db.run('DROP TABLE IF EXISTS buyins');
+    db.run('DROP TABLE IF EXISTS cashouts');
+
+    // Users table
+    console.log('[Init] Creating users table');
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE,
+      password TEXT,
+      role TEXT DEFAULT 'user',
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Tables table
+    db.run(`CREATE TABLE IF NOT EXISTS tables (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      smallBlind INTEGER,
+      bigBlind INTEGER,
+      location TEXT,
+      isActive BOOLEAN DEFAULT true,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      creatorId TEXT,
+      FOREIGN KEY(creatorId) REFERENCES users(id)
+    )`);
+
+    // Players table
+    db.run(`CREATE TABLE IF NOT EXISTS players (
+      id TEXT PRIMARY KEY,
+      tableId TEXT,
+      name TEXT,
+      nickname TEXT,
+      chips INTEGER DEFAULT 0,
+      totalBuyIn INTEGER DEFAULT 0,
+      active BOOLEAN DEFAULT true,
+      showMe BOOLEAN DEFAULT true,
+      FOREIGN KEY(tableId) REFERENCES tables(id) ON DELETE CASCADE
+    )`);
+
+    // Buy-ins table
+    db.run(`CREATE TABLE IF NOT EXISTS buyins (
+      id TEXT PRIMARY KEY,
+      playerId TEXT,
+      amount INTEGER,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
+    )`);
+
+    // Cash-outs table
+    db.run(`CREATE TABLE IF NOT EXISTS cashouts (
+      id TEXT PRIMARY KEY,
+      playerId TEXT,
+      amount INTEGER,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
+    )`);
+
+    // Create initial admin user
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    console.log('[Init] Creating admin user with password from:', process.env.ADMIN_PASSWORD ? 'environment' : 'default');
+    
+    bcrypt.hash(adminPassword, 10, (err, hash) => {
       if (err) {
-        console.error('[Init] Error checking existing tables:', err);
+        console.error('[Init] Error hashing admin password:', err);
         return;
       }
 
-      console.log('[Init] Existing tables:', tables.map(t => t.name));
-
-      // Users table
-      console.log('[Init] Creating users table if not exists');
-      db.run(`CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT UNIQUE,
-        password TEXT,
-        role TEXT DEFAULT 'user',
-        createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-      )`, function(err) {
-        if (err) {
-          console.error('[Init] Error creating users table:', err);
-        } else {
-          console.log('[Init] Users table created/verified');
+      const adminId = uuidv4();
+      const createdAt = new Date().toISOString();
+      
+      db.run(
+        'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
+        [adminId, 'admin', hash, 'admin', createdAt],
+        function(err) {
+          if (err) {
+            console.error('[Init] Error creating admin user:', err);
+          } else {
+            console.log('[Init] Admin user created successfully');
+          }
         }
-      });
-
-      // Tables table
-      db.run(`CREATE TABLE IF NOT EXISTS tables (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        smallBlind INTEGER,
-        bigBlind INTEGER,
-        location TEXT,
-        isActive BOOLEAN DEFAULT true,
-        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-        creatorId TEXT,
-        FOREIGN KEY(creatorId) REFERENCES users(id)
-      )`, function(err) {
-        if (err) {
-          console.error('[Init] Error creating tables table:', err);
-        } else {
-          console.log('[Init] Tables table created/verified');
-        }
-      });
-
-      // Players table
-      db.run(`CREATE TABLE IF NOT EXISTS players (
-        id TEXT PRIMARY KEY,
-        tableId TEXT,
-        name TEXT,
-        nickname TEXT,
-        chips INTEGER DEFAULT 0,
-        totalBuyIn INTEGER DEFAULT 0,
-        active BOOLEAN DEFAULT true,
-        showMe BOOLEAN DEFAULT true,
-        FOREIGN KEY(tableId) REFERENCES tables(id) ON DELETE CASCADE
-      )`, function(err) {
-        if (err) {
-          console.error('[Init] Error creating players table:', err);
-        } else {
-          console.log('[Init] Players table created/verified');
-        }
-      });
-
-      // Buy-ins table
-      db.run(`CREATE TABLE IF NOT EXISTS buyins (
-        id TEXT PRIMARY KEY,
-        playerId TEXT,
-        amount INTEGER,
-        timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
-      )`, function(err) {
-        if (err) {
-          console.error('[Init] Error creating buyins table:', err);
-        } else {
-          console.log('[Init] Buyins table created/verified');
-        }
-      });
-
-      // Cash-outs table
-      db.run(`CREATE TABLE IF NOT EXISTS cashouts (
-        id TEXT PRIMARY KEY,
-        playerId TEXT,
-        amount INTEGER,
-        timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
-      )`, function(err) {
-        if (err) {
-          console.error('[Init] Error creating cashouts table:', err);
-        } else {
-          console.log('[Init] Cashouts table created/verified');
-        }
-      });
-
-      // Check if admin user exists
-      db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, admin) => {
-        if (err) {
-          console.error('[Init] Error checking admin user:', err);
-          return;
-        }
-
-        if (!admin) {
-          console.log('[Init] Admin user not found, creating...');
-          const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-          
-          bcrypt.hash(adminPassword, 10, (err, hash) => {
-            if (err) {
-              console.error('[Init] Error hashing admin password:', err);
-              return;
-            }
-
-            const adminId = uuidv4();
-            const createdAt = new Date().toISOString();
-            
-            db.run(
-              'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
-              [adminId, 'admin', hash, 'admin', createdAt],
-              function(err) {
-                if (err) {
-                  console.error('[Init] Error creating admin user:', err);
-                } else {
-                  console.log('[Init] Admin user created successfully');
-                }
-              }
-            );
-          });
-        } else {
-          console.log('[Init] Admin user exists:', {
-            id: admin.id,
-            username: admin.username,
-            role: admin.role
-          });
-        }
-      });
+      );
     });
+
+    // After creating tables and admin user
+    updateUserPasswords();
   });
 }
 
