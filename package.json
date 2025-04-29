@@ -19,7 +19,8 @@
     "serve": "^14.2.4",
     "sqlite3": "^5.1.7",
     "typescript": "^4.9.5",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "web-vitals": "^4.2.4"
   },
   "scripts": {
     "start": "react-scripts start",
