@@ -17,15 +17,11 @@ import {
   Select,
   MenuItem,
   IconButton,
-<<<<<<< HEAD
   Alert,
   Typography,
   Card,
   CardContent,
   Tooltip
-=======
-  Alert
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useUser } from '../context/UserContext';
@@ -43,12 +39,9 @@ const UserManagement: React.FC = () => {
   const [showAddUser, setShowAddUser] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
-<<<<<<< HEAD
   const [newRole, setNewRole] = useState('viewer');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
-=======
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 
   const { user: currentUser } = useUser();
   const currentUserId = currentUser?.id;
@@ -56,7 +49,7 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -79,7 +72,7 @@ const UserManagement: React.FC = () => {
   const handleCreateUser = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/register`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,11 +81,7 @@ const UserManagement: React.FC = () => {
         body: JSON.stringify({
           username: newUsername,
           password: newPassword,
-<<<<<<< HEAD
           role: newRole
-=======
-          role: 'viewer'
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         })
       });
 
@@ -103,10 +92,7 @@ const UserManagement: React.FC = () => {
       await fetchUsers();
       setNewUsername('');
       setNewPassword('');
-<<<<<<< HEAD
       setNewRole('viewer');
-=======
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       setShowAddUser(false);
     } catch (error) {
       console.error('Error creating user:', error);
@@ -114,7 +100,6 @@ const UserManagement: React.FC = () => {
     }
   };
 
-<<<<<<< HEAD
   const handleOpenAddUser = () => {
     setNewUsername('');
     setNewPassword('');
@@ -132,13 +117,7 @@ const UserManagement: React.FC = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users/${userToDelete}`, {
-=======
-  const handleDeleteUser = async (userId: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users/${userId}`, {
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${userToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -150,11 +129,8 @@ const UserManagement: React.FC = () => {
       }
 
       await fetchUsers();
-<<<<<<< HEAD
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
-=======
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
     } catch (error) {
       console.error('Error deleting user:', error);
       setError('Error deleting user');
@@ -164,7 +140,7 @@ const UserManagement: React.FC = () => {
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/users/${userId}/role`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +161,6 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-<<<<<<< HEAD
     <Box sx={{ mt: 4, maxWidth: 1200, mx: 'auto' }}>
       <Card sx={{ mb: 4, bgcolor: 'background.paper', borderRadius: 2 }}>
         <CardContent>
@@ -446,93 +421,10 @@ const UserManagement: React.FC = () => {
               order: { xs: 1, sm: 2 }
             }}
           >
-=======
-    <Box sx={{ mt: 4 }}>
-      <Button
-        variant="contained"
-        onClick={() => setShowAddUser(true)}
-        sx={{ mb: 2 }}
-      >
-        Add New User
-      </Button>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Username</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Created At</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>
-                  <Select
-                    value={user.role}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    disabled={user.id === currentUserId}
-                  >
-                    <MenuItem value="viewer">Viewer</MenuItem>
-                    <MenuItem value="editor">Editor</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <IconButton
-                    onClick={() => handleDeleteUser(user.id)}
-                    disabled={user.id === currentUserId}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Dialog open={showAddUser} onClose={() => setShowAddUser(false)}>
-        <DialogTitle>Add New User</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Username"
-            fullWidth
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-          />
-          <TextField
-            margin="dense"
-            label="Password"
-            type="password"
-            fullWidth
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowAddUser(false)}>Cancel</Button>
-          <Button onClick={handleCreateUser} variant="contained">
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
             Create
           </Button>
         </DialogActions>
       </Dialog>
-<<<<<<< HEAD
 
       {/* Delete Confirmation Dialog */}
       <Dialog
@@ -561,8 +453,6 @@ const UserManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-=======
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
     </Box>
   );
 };
