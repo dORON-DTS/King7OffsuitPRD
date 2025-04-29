@@ -4,398 +4,303 @@ const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 
 const app = express();
-<<<<<<< HEAD
-const port = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
 
-// Database backup function
-function backupDatabase() {
-  const backupDir = path.join(dataDir, 'backups');
-  if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir, { recursive: true });
-  }
+// Apply rate limiter to all routes
+app.use(limiter);
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupPath = path.join(backupDir, `poker_${timestamp}.db`);
-  
-  try {
-    const dbPath = path.join(dataDir, 'poker.db');
-    if (fs.existsSync(dbPath)) {
-      fs.copyFileSync(dbPath, backupPath);
-      console.log(`Database backed up to: ${backupPath}`);
-    }
-  } catch (err) {
-    console.error('Backup failed:', err);
-  }
-}
-
-// Schedule daily backup at midnight
-setInterval(backupDatabase, 24 * 60 * 60 * 1000);
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(morgan('combined'));
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Allow all origins in development, specific origin in production
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://poker-management.onrender.com'
-    : '*'
-}));
+// Database setup
+const dbPath = path.join(__dirname, 'poker.db');
+const backupPath = path.join(__dirname, 'backup');
 
-// Parse JSON bodies
-app.use(express.json());
-
-=======
-const PORT = process.env.PORT || 10000;
-
-// Enable CORS for all routes
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://poker-management.onrender.com', 'http://localhost:3000']
-    : 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Middleware to parse JSON bodies
-app.use(express.json());
-
-// Serve static files from the React app
-const buildPath = path.join(__dirname, 'build');
-if (fs.existsSync(buildPath)) {
-  app.use(express.static(buildPath));
-  console.log('Serving static files from build directory');
-} else {
-  console.warn('Build directory not found. Static files will not be served.');
+if (!fs.existsSync(backupPath)) {
+  fs.mkdirSync(backupPath);
 }
 
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
-// Add request logging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  next();
-});
-
-<<<<<<< HEAD
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
-
-=======
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
-// --- Database Initialization ---
-let db; // Declare db variable
-
-function initializeDatabase() {
-<<<<<<< HEAD
-  // Verify data directory exists and is writable
-  const dataDir = path.join(__dirname, 'data');
-  try {
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    // Test write permissions
-    fs.accessSync(dataDir, fs.constants.W_OK);
-    console.log('Data directory is writable:', dataDir);
-  } catch (err) {
-    console.error('Error accessing data directory:', err);
-    process.exit(1);
-  }
-
-=======
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
-  db.serialize(() => {
-    // Create users table if it doesn't exist
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'viewer',
-      createdAt TEXT NOT NULL
-    )`);
-
-    // Create tables if they don't exist
-    db.run(`CREATE TABLE IF NOT EXISTS tables (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      smallBlind INTEGER NOT NULL,
-      bigBlind INTEGER NOT NULL,
-      location TEXT,
-      isActive INTEGER DEFAULT 1,
-      createdAt TEXT NOT NULL,
-      creatorId TEXT NOT NULL,
-      FOREIGN KEY (creatorId) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS players (
-      id TEXT PRIMARY KEY,
-      tableId TEXT NOT NULL,
-      name TEXT NOT NULL,
-      nickname TEXT,
-      chips INTEGER DEFAULT 0,
-      totalBuyIn INTEGER DEFAULT 0,
-      active INTEGER DEFAULT 1,
-      showMe INTEGER DEFAULT 1,
-      FOREIGN KEY (tableId) REFERENCES tables(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS buyins (
-      id TEXT PRIMARY KEY,
-      playerId TEXT NOT NULL,
-      amount INTEGER NOT NULL,
-      timestamp TEXT NOT NULL,
-      FOREIGN KEY (playerId) REFERENCES players(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS cashouts (
-      id TEXT PRIMARY KEY,
-      playerId TEXT NOT NULL,
-      amount INTEGER NOT NULL,
-      timestamp TEXT NOT NULL,
-      FOREIGN KEY (playerId) REFERENCES players(id)
-    )`);
-
-    console.log('Database tables initialized successfully');
-  });
-}
-
-// Create/Connect to SQLite database
-const dbPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, 'data', 'poker.db')
-  : 'poker.db';
-
-db = new sqlite3.Database(dbPath, (err) => {
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Error connecting to database:', err);
+    console.error('Error opening database:', err);
   } else {
-    console.log('Connected to SQLite database at:', dbPath);
+    console.log('Connected to SQLite database');
     initializeDatabase();
   }
 });
 
-// Add login endpoint
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
+// Backup function
+function backupDatabase() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupFile = path.join(backupPath, `poker_${timestamp}.db`);
   
-  // Validate input
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
-  }
-  
-  // Check if user exists and password matches
-  db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, user) => {
+  fs.copyFile(dbPath, backupFile, (err) => {
     if (err) {
-      console.error('Login error:', err);
-      return res.status(500).json({ error: 'Database error' });
+      console.error('Error creating backup:', err);
+    } else {
+      console.log('Database backup created:', backupFile);
+      
+      // Clean up old backups (keep last 5)
+      fs.readdir(backupPath, (err, files) => {
+        if (err) {
+          console.error('Error reading backup directory:', err);
+          return;
+        }
+        
+        const backups = files
+          .filter(file => file.startsWith('poker_'))
+          .sort()
+          .reverse();
+        
+        if (backups.length > 5) {
+          backups.slice(5).forEach(file => {
+            fs.unlink(path.join(backupPath, file), err => {
+              if (err) console.error('Error deleting old backup:', err);
+            });
+          });
+        }
+      });
     }
-    
-    if (!user) {
-      console.log('Login failed: Invalid credentials for user:', username);
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-    
-    console.log('Login successful for user:', username);
-    // In a real app, you would generate a JWT token here
-    // For now, we'll just use the user ID as a token
-    res.json({
-      token: user.id,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role
+  });
+}
+
+// Schedule daily backups
+setInterval(backupDatabase, 24 * 60 * 60 * 1000);
+
+// Database initialization
+function initializeDatabase() {
+  db.serialize(() => {
+    // Users table
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE,
+      password TEXT,
+      role TEXT DEFAULT 'user',
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Tables table
+    db.run(`CREATE TABLE IF NOT EXISTS tables (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      smallBlind INTEGER,
+      bigBlind INTEGER,
+      location TEXT,
+      isActive BOOLEAN DEFAULT true,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      creatorId TEXT,
+      FOREIGN KEY(creatorId) REFERENCES users(id)
+    )`);
+
+    // Players table
+    db.run(`CREATE TABLE IF NOT EXISTS players (
+      id TEXT PRIMARY KEY,
+      tableId TEXT,
+      name TEXT,
+      nickname TEXT,
+      chips INTEGER DEFAULT 0,
+      totalBuyIn INTEGER DEFAULT 0,
+      active BOOLEAN DEFAULT true,
+      showMe BOOLEAN DEFAULT true,
+      FOREIGN KEY(tableId) REFERENCES tables(id) ON DELETE CASCADE
+    )`);
+
+    // Buy-ins table
+    db.run(`CREATE TABLE IF NOT EXISTS buyins (
+      id TEXT PRIMARY KEY,
+      playerId TEXT,
+      amount INTEGER,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
+    )`);
+
+    // Cash-outs table
+    db.run(`CREATE TABLE IF NOT EXISTS cashouts (
+      id TEXT PRIMARY KEY,
+      playerId TEXT,
+      amount INTEGER,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
+    )`);
+
+    // Create initial admin user if not exists
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    bcrypt.hash(adminPassword, 10, (err, hash) => {
+      if (err) {
+        console.error('Error hashing admin password:', err);
+        return;
       }
+
+      db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, user) => {
+        if (err) {
+          console.error('Error checking for admin user:', err);
+          return;
+        }
+
+        if (!user) {
+          db.run(
+            'INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, ?)',
+            [uuidv4(), 'admin', hash, 'admin'],
+            (err) => {
+              if (err) {
+                console.error('Error creating admin user:', err);
+              } else {
+                console.log('Admin user created successfully');
+              }
+            }
+          );
+        }
+      });
     });
   });
-});
+}
 
 // Authentication middleware
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(401).json({ error: 'Authentication required' });
+    return res.status(401).json({ error: 'No token provided' });
   }
 
   const token = authHeader.split(' ')[1];
-  console.log('[AUTH] Token received:', token);
-  if (!token) {
-    return res.status(401).json({ error: 'Invalid token format' });
-  }
-
-  // Fetch the user from the DB by id (token)
-  db.get('SELECT * FROM users WHERE id = ?', [token], (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-    req.user = { id: user.id, role: user.role, username: user.username };
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
     next();
-  });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
 };
 
 // Authorization middleware
 const authorize = (roles) => {
   return (req, res, next) => {
-    console.log('authorize middleware:', { roles, user: req.user });
-    if (!req.user) {
-      console.log('No req.user, returning 401');
-      return res.status(401).json({ error: 'Authentication required' });
-    }
     if (!roles.includes(req.user.role)) {
-      console.log('Forbidden! user.role:', req.user.role, 'roles allowed:', roles);
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
     next();
   };
 };
 
-// --- API Routes --- (Now defined after DB is initialized)
+// Routes
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
 
-app.get('/api/tables', authenticate, (req, res) => {
-  db.all('SELECT * FROM tables', [], (err, tables) => {
+  db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-<<<<<<< HEAD
-=======
-    console.log('Fetched tables from DB:', tables); // DEBUG LOG
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
-    // Get players and their buyins/cashouts for each table
-    const promises = tables.map(table => {
+
+    if (!user) {
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+
+    bcrypt.compare(password, user.password, (err, match) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      if (!match) {
+        res.status(401).json({ error: 'Invalid credentials' });
+        return;
+      }
+
+      const token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({ token, username: user.username, role: user.role });
+    });
+  });
+});
+
+// Get all tables
+app.get('/api/tables', authenticate, (req, res) => {
+  db.all('SELECT * FROM tables ORDER BY createdAt DESC', [], (err, tables) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    const tablePromises = tables.map(table => {
       return new Promise((resolve, reject) => {
         db.all('SELECT * FROM players WHERE tableId = ?', [table.id], (err, players) => {
           if (err) {
             reject(err);
             return;
           }
-          // Get buyins and cashouts for each player
+
           const playerPromises = players.map(player => {
-            return new Promise((resolvePlayer, rejectPlayer) => {
-              const buyInsPromise = new Promise((resBuyIn, rejBuyIn) => {
-                db.all('SELECT * FROM buyins WHERE playerId = ? ORDER BY timestamp ASC', [player.id], (err, buyIns) => {
-                  if (err) rejBuyIn(err);
-                  else resBuyIn(buyIns || []);
+            return new Promise((resolve, reject) => {
+              db.all('SELECT * FROM buyins WHERE playerId = ?', [player.id], (err, buyIns) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+
+                db.all('SELECT * FROM cashouts WHERE playerId = ?', [player.id], (err, cashOuts) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+
+                  resolve({ ...player, buyIns, cashOuts });
                 });
               });
-              const cashOutsPromise = new Promise((resCashOut, rejCashOut) => {
-                db.all('SELECT id, amount, timestamp FROM cashouts WHERE playerId = ? ORDER BY timestamp ASC', [player.id], (err, cashOuts) => {
-                  if (err) rejCashOut(err);
-                  // Return the array of cashout objects directly
-                  else resCashOut(cashOuts || []); 
-                });
-              });
-              
-              Promise.all([buyInsPromise, cashOutsPromise])
-                .then(([buyIns, cashOuts]) => {
-                  player.buyIns = buyIns;
-                  player.cashOuts = cashOuts;
-                  resolvePlayer(player);
-                })
-                .catch(rejectPlayer);
             });
           });
 
           Promise.all(playerPromises)
-            .then(playersWithDetails => {
-              table.players = playersWithDetails || [];
-              resolve(table);
+            .then(playersWithTransactions => {
+              resolve({ ...table, players: playersWithTransactions });
             })
             .catch(reject);
         });
       });
     });
 
-    Promise.all(promises)
+    Promise.all(tablePromises)
       .then(tablesWithPlayers => {
         res.json(tablesWithPlayers);
       })
-      .catch(error => {
-        res.status(500).json({ error: error.message });
+      .catch(err => {
+        res.status(500).json({ error: err.message });
       });
   });
 });
 
-// GET a single table by ID
-app.get('/api/tables/:id', (req, res) => {
-  const tableId = req.params.id;
-  db.get('SELECT * FROM tables WHERE id = ?', [tableId], (err, table) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    if (!table) {
-      return res.status(404).json({ message: 'Table not found' });
-    }
+// Create new table
+app.post('/api/tables', authenticate, authorize(['admin']), (req, res) => {
+  const { name, smallBlind, bigBlind, location } = req.body;
+  const id = uuidv4();
+  const createdAt = new Date().toISOString();
+  const creatorId = req.user.id;
+  const isActive = true;
 
-    // Fetch players for this specific table
-    db.all('SELECT * FROM players WHERE tableId = ?', [tableId], (err, players) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-
-      // Fetch buy-ins and cash-outs for each player
-      const playerPromises = players.map(player => {
-        return new Promise((resolvePlayer, rejectPlayer) => {
-          const buyInsPromise = new Promise((resBuyIn, rejBuyIn) => {
-            db.all('SELECT * FROM buyins WHERE playerId = ? ORDER BY timestamp ASC', [player.id], (err, buyIns) => {
-              if (err) rejBuyIn(err);
-              else resBuyIn(buyIns || []);
-            });
-          });
-          const cashOutsPromise = new Promise((resCashOut, rejCashOut) => {
-            db.all('SELECT id, amount, timestamp FROM cashouts WHERE playerId = ? ORDER BY timestamp ASC', [player.id], (err, cashOuts) => {
-              if (err) rejCashOut(err);
-              else resCashOut(cashOuts || []); 
-            });
-          });
-          
-          Promise.all([buyInsPromise, cashOutsPromise])
-            .then(([buyIns, cashOuts]) => {
-              player.buyIns = buyIns;
-              player.cashOuts = cashOuts;
-              resolvePlayer(player);
-            })
-            .catch(rejectPlayer);
-        });
-      });
-
-      Promise.all(playerPromises)
-        .then(playersWithDetails => {
-          table.players = playersWithDetails || [];
-          res.json(table); // Return the single table with its players
-        })
-        .catch(error => {
-          res.status(500).json({ error: error.message });
-        });
-    });
-  });
-});
-
-// *** NEW: Endpoint to get unique player names ***
-app.get('/api/players/unique-names', (req, res) => {
-  db.all('SELECT DISTINCT name FROM players ORDER BY name COLLATE NOCASE', [], (err, rows) => {
-    if (err) {
-      console.error("Error fetching unique player names:", err.message);
-      res.status(500).json({ error: 'Failed to fetch player names' });
-      return;
-    }
-    const names = rows.map(row => row.name);
-    res.json(names);
-  });
-});
-
-app.post('/api/tables', authenticate, authorize(['admin', 'editor']), (req, res) => {
-  const { id, name, smallBlind, bigBlind, location, isActive, createdAt, creatorId } = req.body;
   db.run(
     'INSERT INTO tables (id, name, smallBlind, bigBlind, location, isActive, createdAt, creatorId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [id, name, smallBlind, bigBlind, location, isActive, createdAt, creatorId],
@@ -409,6 +314,7 @@ app.post('/api/tables', authenticate, authorize(['admin', 'editor']), (req, res)
   );
 });
 
+// Delete table
 app.delete('/api/tables/:id', authenticate, authorize(['admin']), (req, res) => {
   db.run('DELETE FROM tables WHERE id = ?', [req.params.id], function(err) {
     if (err) {
@@ -419,6 +325,7 @@ app.delete('/api/tables/:id', authenticate, authorize(['admin']), (req, res) => 
   });
 });
 
+// Add player to table
 app.post('/api/tables/:tableId/players', authenticate, authorize(['admin', 'editor']), (req, res) => {
   const { name, nickname, chips, active = true, showMe = true } = req.body;
   const tableId = req.params.tableId;
@@ -475,6 +382,7 @@ app.post('/api/tables/:tableId/players', authenticate, authorize(['admin', 'edit
   });
 });
 
+// Remove player from table
 app.delete('/api/tables/:tableId/players/:playerId', authenticate, authorize(['admin', 'editor']), (req, res) => {
   db.run('DELETE FROM players WHERE id = ? AND tableId = ?', [req.params.playerId, req.params.tableId], function(err) {
     if (err) {
@@ -485,6 +393,7 @@ app.delete('/api/tables/:tableId/players/:playerId', authenticate, authorize(['a
   });
 });
 
+// Update player chips
 app.put('/api/tables/:tableId/players/:playerId/chips', authenticate, authorize(['admin', 'editor']), (req, res) => {
   const { chips } = req.body;
   db.run(
@@ -500,18 +409,19 @@ app.put('/api/tables/:tableId/players/:playerId/chips', authenticate, authorize(
   );
 });
 
+// Add buy-in for player
 app.post('/api/tables/:tableId/players/:playerId/buyins', authenticate, authorize(['admin', 'editor']), (req, res) => {
   const { amount } = req.body;
-  const buyInId = Math.random().toString(36).substr(2, 9);
+  const buyInId = uuidv4();
   const playerId = req.params.playerId;
+  const timestamp = new Date().toISOString();
   
-  // Log received data
   console.log(`BUYIN: Received for player ${playerId}, amount: ${amount} (Type: ${typeof amount})`);
 
   db.serialize(() => {
     db.run(
-      'INSERT INTO buyins (id, playerId, amount) VALUES (?, ?, ?)',
-      [buyInId, playerId, amount],
+      'INSERT INTO buyins (id, playerId, amount, timestamp) VALUES (?, ?, ?, ?)',
+      [buyInId, playerId, amount, timestamp],
       function(err) {
         if (err) {
           console.error(`BUYIN ERROR (INSERT): Player ${playerId} - ${err.message}`);
@@ -519,11 +429,10 @@ app.post('/api/tables/:tableId/players/:playerId/buyins', authenticate, authoriz
         }
         console.log(`BUYIN SUCCESS (INSERT): Player ${playerId}, Buyin ID: ${buyInId}, Rows changed: ${this.changes}`);
 
-        // Ensure amount is a number for the update
         const numericAmount = Number(amount);
         if (isNaN(numericAmount)) {
-             console.error(`BUYIN ERROR (UPDATE): Invalid amount type for player ${playerId} - amount: ${amount}`);
-             return res.status(400).json({ error: 'Invalid amount for buyin' });
+          console.error(`BUYIN ERROR (UPDATE): Invalid amount type for player ${playerId} - amount: ${amount}`);
+          return res.status(400).json({ error: 'Invalid amount for buyin' });
         }
 
         db.run(
@@ -535,7 +444,7 @@ app.post('/api/tables/:tableId/players/:playerId/buyins', authenticate, authoriz
               return res.status(500).json({ error: 'Failed to update player after buyin' });
             }
             console.log(`BUYIN SUCCESS (UPDATE): Player ${playerId}, Rows changed: ${this.changes}`);
-            res.json({ id: buyInId, amount: numericAmount, timestamp: new Date().toISOString() });
+            res.json({ id: buyInId, amount: numericAmount, timestamp });
           }
         );
       }
@@ -543,26 +452,23 @@ app.post('/api/tables/:tableId/players/:playerId/buyins', authenticate, authoriz
   });
 });
 
+// Add cash-out for player
 app.post('/api/tables/:tableId/players/:playerId/cashouts', authenticate, authorize(['admin', 'editor']), (req, res) => {
   const { amount } = req.body;
-  const cashOutId = uuidv4(); // Use UUID for consistency
+  const cashOutId = uuidv4();
   const playerId = req.params.playerId;
   const timestamp = new Date().toISOString();
 
-  // Log received data
   console.log(`CASHOUT: Received for player ${playerId}, amount: ${amount} (Type: ${typeof amount})`);
 
   db.serialize(() => {
-    // Step 1: Delete existing cashouts for this player
     db.run('DELETE FROM cashouts WHERE playerId = ?', [playerId], function(deleteErr) {
       if (deleteErr) {
         console.error(`CASHOUT ERROR (DELETE PREVIOUS): Player ${playerId} - ${deleteErr.message}`);
-        // Continue even if delete fails, maybe there were none
       } else {
         console.log(`CASHOUT INFO (DELETE PREVIOUS): Deleted ${this.changes} previous cashouts for player ${playerId}`);
       }
 
-      // Step 2: Insert the new cashout record
       db.run(
         'INSERT INTO cashouts (id, playerId, amount, timestamp) VALUES (?, ?, ?, ?)',
         [cashOutId, playerId, amount, timestamp],
@@ -573,11 +479,10 @@ app.post('/api/tables/:tableId/players/:playerId/cashouts', authenticate, author
           }
           console.log(`CASHOUT SUCCESS (INSERT NEW): Player ${playerId}, Cashout ID: ${cashOutId}, Amount: ${amount}`);
 
-          // Step 3: Update player status (active=false, chips=0)
           const numericAmount = Number(amount);
-           if (isNaN(numericAmount)) {
-               console.error(`CASHOUT ERROR (VALIDATION): Invalid amount type for player ${playerId} - amount: ${amount}`);
-               return res.status(400).json({ error: 'Invalid amount for cashout' });
+          if (isNaN(numericAmount)) {
+            console.error(`CASHOUT ERROR (VALIDATION): Invalid amount type for player ${playerId} - amount: ${amount}`);
+            return res.status(400).json({ error: 'Invalid amount for cashout' });
           }
 
           db.run(
@@ -589,8 +494,7 @@ app.post('/api/tables/:tableId/players/:playerId/cashouts', authenticate, author
                 return res.status(500).json({ error: 'Failed to update player status after cashout' });
               }
               console.log(`CASHOUT SUCCESS (UPDATE PLAYER): Player ${playerId}, Status updated.`);
-              // Return the new cashout object
-              res.json({ id: cashOutId, amount: numericAmount, timestamp: timestamp });
+              res.json({ id: cashOutId, amount: numericAmount, timestamp });
             }
           );
         }
@@ -599,6 +503,7 @@ app.post('/api/tables/:tableId/players/:playerId/cashouts', authenticate, author
   });
 });
 
+// Update table status
 app.put('/api/tables/:tableId/status', authenticate, authorize(['admin', 'editor']), (req, res) => {
   const { isActive } = req.body;
   db.run(
@@ -614,6 +519,7 @@ app.put('/api/tables/:tableId/status', authenticate, authorize(['admin', 'editor
   );
 });
 
+// Reactivate player
 app.put('/api/tables/:tableId/players/:playerId/reactivate', authenticate, authorize(['admin', 'editor']), (req, res) => {
   db.run(
     'UPDATE players SET active = true WHERE id = ? AND tableId = ?',
@@ -628,6 +534,7 @@ app.put('/api/tables/:tableId/players/:playerId/reactivate', authenticate, autho
   );
 });
 
+// Update player showMe status
 app.put('/api/tables/:tableId/players/:playerId/showme', authenticate, authorize(['admin', 'editor']), (req, res) => {
   const { tableId, playerId } = req.params;
   const { showMe } = req.body;
@@ -647,421 +554,24 @@ app.put('/api/tables/:tableId/players/:playerId/showme', authenticate, authorize
   );
 });
 
-// General update of table details
-app.put('/api/tables/:tableId', authenticate, authorize(['admin', 'editor']), (req, res) => {
-  const { name, smallBlind, bigBlind, location, createdAt } = req.body;
-  const tableId = req.params.tableId;
-
-  db.run(
-    `UPDATE tables SET name = ?, smallBlind = ?, bigBlind = ?, location = ?, createdAt = ? WHERE id = ?`,
-    [name, smallBlind, bigBlind, location, createdAt, tableId],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ message: 'Table updated successfully' });
-    }
-  );
-});
-
-// Add registration endpoint
-app.post('/api/register', (req, res) => {
-  const { username, password, role = 'viewer' } = req.body;
-  
-  // Validate input
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password are required' });
-  }
-  
-  // Check if username already exists
-  db.get('SELECT * FROM users WHERE username = ?', [username], (err, existingUser) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    
-    if (existingUser) {
-      return res.status(400).json({ error: 'Username already exists' });
-    }
-    
-    // Create new user
-    const userId = uuidv4();
-    const createdAt = new Date().toISOString();
-    
-    db.run(
-      'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
-      [userId, username, password, role, createdAt],
-      function(err) {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to create user' });
-        }
-        
-        res.status(201).json({
-          id: userId,
-          username,
-          role,
-          createdAt
-        });
-      }
-    );
-  });
-});
-
-// Add endpoint to update user role
-app.put('/api/users/:userId/role', authenticate, authorize(['admin']), (req, res) => {
-  const { userId } = req.params;
-  const { role } = req.body;
-  
-  // Validate role
-  const validRoles = ['viewer', 'editor', 'admin'];
-  if (!validRoles.includes(role)) {
-    return res.status(400).json({ error: 'Invalid role' });
-  }
-  
-  db.run(
-    'UPDATE users SET role = ? WHERE id = ?',
-    [role, userId],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to update user role' });
-      }
-      
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      res.json({ message: 'User role updated successfully' });
-    }
-  );
-});
-
-// Add endpoint to get all users
-app.get('/api/users', authenticate, authorize(['admin']), (req, res) => {
-  console.log('--- /api/users DEBUG ---');
-  console.log('req.user:', req.user);
-  console.log('headers:', req.headers);
-  db.all('SELECT id, username, role, createdAt FROM users', [], (err, users) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch users' });
-    }
-    res.json(users);
-  });
-});
-
-// Add endpoint to delete users
-app.delete('/api/users/:userId', authenticate, authorize(['admin']), (req, res) => {
-  const { userId } = req.params;
-  
-  db.run('DELETE FROM users WHERE id = ?', [userId], function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to delete user' });
-    }
-    
-    if (this.changes === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    res.json({ message: 'User deleted successfully' });
-  });
-});
-
-// Add endpoint to change password
-app.put('/api/users/:userId/password', authenticate, (req, res) => {
-  const { userId } = req.params;
-  const { currentPassword, newPassword } = req.body;
-  
-  // Validate input
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ error: 'Current and new password are required' });
-  }
-  
-  // Check if user is changing their own password or is admin
-  if (req.user.id !== userId && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Not authorized to change this password' });
-  }
-  
-  // Verify current password
-  db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Skip password verification for admin
-    if (req.user.role !== 'admin' && user.password !== currentPassword) {
-      return res.status(401).json({ error: 'Current password is incorrect' });
-    }
-    
-    // Update password
-    db.run(
-      'UPDATE users SET password = ? WHERE id = ?',
-      [newPassword, userId],
-      function(err) {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to update password' });
-        }
-        
-        res.json({ message: 'Password updated successfully' });
-      }
-    );
-  });
-});
-
-// Add endpoint to get current user info
-app.get('/api/users/me', authenticate, (req, res) => {
-  const userId = req.user.id;
-  
-  db.get('SELECT id, username, role FROM users WHERE id = ?', [userId], (err, user) => {
-    if (err) {
-      console.error('Error fetching user:', err);
-      return res.status(500).json({ error: 'Database error' });
-    }
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    res.json(user);
-  });
-});
-
-// Add logout endpoint
-app.post('/api/logout', authenticate, (req, res) => {
-  // In a real app, you would invalidate the JWT token here
-  // For now, we'll just return a success message
-  res.json({ message: 'Logged out successfully' });
-});
-
-// Add endpoint to update user profile
-app.put('/api/users/:userId/profile', authenticate, (req, res) => {
-  const { userId } = req.params;
-  const { username } = req.body;
-  
-  // Check if user is updating their own profile or is admin
-  if (req.user.id !== userId && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Not authorized to update this profile' });
-  }
-  
-  // Check if username is already taken
-  db.get('SELECT * FROM users WHERE username = ? AND id != ?', [username, userId], (err, existingUser) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    
-    if (existingUser) {
-      return res.status(400).json({ error: 'Username already taken' });
-    }
-    
-    // Update profile
-    db.run(
-      'UPDATE users SET username = ? WHERE id = ?',
-      [username, userId],
-      function(err) {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to update profile' });
-        }
-        
-        if (this.changes === 0) {
-          return res.status(404).json({ error: 'User not found' });
-        }
-        
-        res.json({ message: 'Profile updated successfully' });
-      }
-    );
-  });
-});
-
-// Add endpoint to update user permissions
-app.put('/api/users/:userId/permissions', authenticate, authorize(['admin']), (req, res) => {
-  const { userId } = req.params;
-  const { permissions } = req.body;
-  
-  // Validate permissions
-  if (!Array.isArray(permissions)) {
-    return res.status(400).json({ error: 'Permissions must be an array' });
-  }
-  
-  // Update permissions
-  db.run(
-    'UPDATE users SET permissions = ? WHERE id = ?',
-    [JSON.stringify(permissions), userId],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to update permissions' });
-      }
-      
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      res.json({ message: 'Permissions updated successfully' });
-    }
-  );
-});
-
-// Add endpoint to get user permissions
-app.get('/api/users/:userId/permissions', authenticate, (req, res) => {
-  const { userId } = req.params;
-  
-  // Check if user is getting their own permissions or is admin
-  if (req.user.id !== userId && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Not authorized to view these permissions' });
-  }
-  
-  db.get('SELECT permissions FROM users WHERE id = ?', [userId], (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch permissions' });
-    }
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    res.json({ permissions: JSON.parse(user.permissions || '[]') });
-  });
-});
-
-// Add endpoint to get all users with permissions
-app.get('/api/users/with-permissions', authenticate, authorize(['admin']), (req, res) => {
-  db.all('SELECT id, username, role, permissions FROM users', [], (err, users) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch users' });
-    }
-    
-    const usersWithPermissions = users.map(user => ({
-      ...user,
-      permissions: JSON.parse(user.permissions || '[]')
-    }));
-    
-    res.json(usersWithPermissions);
-  });
-});
-
-// Public endpoint to get all tables and their data (no authentication required)
-app.get('/api/public/tables', (req, res) => {
-  db.all('SELECT * FROM tables', [], (err, tables) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    // Get players and their buyins/cashouts for each table
-    const promises = tables.map(table => {
-      return new Promise((resolve, reject) => {
-        db.all('SELECT * FROM players WHERE tableId = ?', [table.id], (err, players) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          // Get buyins and cashouts for each player
-          const playerPromises = players.map(player => {
-            return new Promise((resolvePlayer, rejectPlayer) => {
-              const buyInsPromise = new Promise((resBuyIn, rejBuyIn) => {
-                db.all('SELECT * FROM buyins WHERE playerId = ? ORDER BY timestamp ASC', [player.id], (err, buyIns) => {
-                  if (err) rejBuyIn(err);
-                  else resBuyIn(buyIns || []);
-                });
-              });
-              const cashOutsPromise = new Promise((resCashOut, rejCashOut) => {
-                db.all('SELECT id, amount, timestamp FROM cashouts WHERE playerId = ? ORDER BY timestamp ASC', [player.id], (err, cashOuts) => {
-                  if (err) rejCashOut(err);
-                  else resCashOut(cashOuts || []); 
-                });
-              });
-              Promise.all([buyInsPromise, cashOutsPromise])
-                .then(([buyIns, cashOuts]) => {
-                  player.buyIns = buyIns;
-                  player.cashOuts = cashOuts;
-                  resolvePlayer(player);
-                })
-                .catch(rejectPlayer);
-            });
-          });
-          Promise.all(playerPromises)
-            .then(playersWithDetails => {
-              table.players = playersWithDetails || [];
-              resolve(table);
-            })
-            .catch(reject);
-        });
-      });
-    });
-    Promise.all(promises)
-      .then(tablesWithPlayers => {
-        res.json(tablesWithPlayers);
-      })
-      .catch(error => {
-        res.status(500).json({ error: error.message });
-      });
-  });
-});
-
-<<<<<<< HEAD
-// Handle React routing, return all requests to React app
+// Catch all other routes and return the React app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-// --- Start Server --- 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${port}`);
-  console.log(`Database path: ${dbPath}`);
-  // Perform initial backup
-  backupDatabase();
-=======
-// TEMP: Reset users endpoint (for development only!)
-app.post('/api/dev/reset-users', (req, res) => {
-  const users = [
-    { username: 'admin', password: '365Scores!', role: 'admin' },
-    { username: 'Doron', password: '365Scores!', role: 'viewer' },
-    { username: 'Ran', password: '365Scores!', role: 'viewer' },
-    { username: 'Bar', password: '365Scores!', role: 'viewer' },
-    { username: 'Lior', password: '365Scores!', role: 'viewer' },
-  ];
-  db.serialize(() => {
-    db.run('DELETE FROM users', [], (err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to delete users' });
-      }
-      const createdAt = new Date().toISOString();
-      let completed = 0;
-      let hasError = false;
-      users.forEach(user => {
-        const id = require('uuid').v4();
-        db.run(
-          'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
-          [id, user.username, user.password, user.role, createdAt],
-          function(err) {
-            if (err && !hasError) {
-              hasError = true;
-              return res.status(500).json({ error: 'Failed to create user: ' + user.username });
-            }
-            completed++;
-            if (completed === users.length && !hasError) {
-              res.json({ message: 'Users reset successfully', users });
-            }
-          }
-        );
-      });
-    });
-  });
-});
-
-// All other routes should return the React app
-app.get('*', (req, res) => {
-  if (fs.existsSync(path.join(buildPath, 'index.html'))) {
-    res.sendFile(path.join(buildPath, 'index.html'));
-  } else {
-    res.status(404).json({ error: 'Not found' });
-  }
-});
-
-// --- Start Server --- 
+// Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`API URL: ${process.env.REACT_APP_API_URL}`);
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
+});
+
+// Handle cleanup on shutdown
+process.on('SIGINT', () => {
+  db.close((err) => {
+    if (err) {
+      console.error('Error closing database:', err);
+    } else {
+      console.log('Database connection closed');
+    }
+    process.exit(0);
+  });
 }); 
