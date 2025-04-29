@@ -184,6 +184,7 @@ app.post('/api/login', (req, res) => {
       userId: user?.id,
       role: user?.role,
       hasPassword: !!user?.password,
+      passwordHash: user?.password ? user.password.substring(0, 10) + '...' : undefined,
       timestamp: new Date().toISOString()
     });
 
@@ -218,12 +219,16 @@ app.post('/api/login', (req, res) => {
       console.log('[Login] Password comparison result:', {
         username,
         isMatch,
+        providedPassword: password.substring(0, 3) + '...',
+        storedHash: user.password.substring(0, 10) + '...',
         timestamp: new Date().toISOString()
       });
 
       if (!isMatch) {
         console.log('[Login] Password mismatch:', {
           username,
+          providedPassword: password.substring(0, 3) + '...',
+          storedHash: user.password.substring(0, 10) + '...',
           timestamp: new Date().toISOString()
         });
         return res.status(401).json({ message: 'Invalid credentials' });
@@ -240,6 +245,7 @@ app.post('/api/login', (req, res) => {
         username,
         userId: user.id,
         role: user.role,
+        token: token.substring(0, 10) + '...',
         timestamp: new Date().toISOString()
       });
 
