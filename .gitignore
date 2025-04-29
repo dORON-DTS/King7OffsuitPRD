@@ -7,6 +7,7 @@
 
 # testing
 /coverage
+<<<<<<< HEAD
 /__tests__
 
 # development files
@@ -16,6 +17,8 @@ server-simple.js
 import_excel.py
 clear_imported_data.py
 -p/
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 
 # production
 /build
@@ -38,8 +41,13 @@ yarn-error.log*
 # large files
 structure.txt
 
+<<<<<<< HEAD
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+=======
+# database
+poker.db
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d

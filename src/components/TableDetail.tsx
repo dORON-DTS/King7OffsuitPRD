@@ -44,6 +44,14 @@ interface EditForm {
 }
 interface EditFormErrors {
   [key: string]: string | undefined;
+<<<<<<< HEAD
+=======
+  name?: string;
+  smallBlind?: string;
+  bigBlind?: string;
+  location?: string;
+  date?: string;
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 }
 
 const TableDetail: React.FC = () => {
@@ -98,7 +106,11 @@ const TableDetail: React.FC = () => {
   });
   const [editFormErrors, setEditFormErrors] = useState<EditFormErrors>({});
 
+<<<<<<< HEAD
   const table = id ? getTable(id) : null;
+=======
+  const table = id ? getTable(id) : undefined;
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 
   // אתחול ערכי הטופס בכל פתיחה של הדיאלוג
   useEffect(() => {
@@ -118,7 +130,11 @@ const TableDetail: React.FC = () => {
   useEffect(() => {
     if (openDialog) {
       setLoadingNames(true);
+<<<<<<< HEAD
       fetch('/api/players/unique-names') // Use relative path
+=======
+      fetch(`${process.env.REACT_APP_API_URL}/api/players/unique-names`)
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -154,7 +170,11 @@ const TableDetail: React.FC = () => {
     return (
       <Box sx={{ p: 2 }}>
         <Typography>Table not found</Typography>
+<<<<<<< HEAD
         <Button variant="contained" onClick={() => navigate('/tables')}>Back to Tables</Button>
+=======
+        <Button variant="contained" onClick={() => navigate('/')}>Back to Tables</Button>
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       </Box>
     );
   }
@@ -170,8 +190,11 @@ const TableDetail: React.FC = () => {
         
         await navigator.clipboard.writeText(shareUrl);
         setShowShareAlert(true);
+<<<<<<< HEAD
         // Open in new tab
         window.open(shareUrl, '_blank');
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       } catch (error) {
         // Fallback for browsers that don't support clipboard API
         const textArea = document.createElement('textarea');
@@ -182,8 +205,11 @@ const TableDetail: React.FC = () => {
         try {
           document.execCommand('copy');
           setShowShareAlert(true);
+<<<<<<< HEAD
           // Open in new tab
           window.open(shareUrl, '_blank');
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         } catch (err) {
           console.error('Failed to copy:', err);
           alert('Failed to copy share link. Please copy this URL manually: ' + shareUrl);
@@ -284,7 +310,11 @@ const TableDetail: React.FC = () => {
       } else {
         // For inactive players, sum their cashouts
         const cashOutsTotal = Array.isArray(player.cashOuts) 
+<<<<<<< HEAD
           ? player.cashOuts.reduce((cashOutSum: number, cashOut: { amount: number }) => cashOutSum + cashOut.amount, 0)
+=======
+          ? player.cashOuts.reduce((cashOutSum, cashOut) => cashOutSum + (cashOut.amount || 0), 0)
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
           : 0;
         return sum + cashOutsTotal;
       }
@@ -350,7 +380,11 @@ const TableDetail: React.FC = () => {
   // עדכון ערכים בטופס
   const handleEditInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setEditForm(prev => ({ ...prev, [field]: event.target.value }));
+<<<<<<< HEAD
     if (editFormErrors[field as keyof EditFormErrors]) {
+=======
+    if (editFormErrors[field]) {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       setEditFormErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
@@ -383,7 +417,11 @@ const TableDetail: React.FC = () => {
   return (
     <Box sx={{ p: 2, maxWidth: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+<<<<<<< HEAD
         <IconButton onClick={() => navigate('/tables')} sx={{ mr: 1 }}>
+=======
+        <IconButton onClick={() => navigate('/')} sx={{ mr: 1 }}>
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
@@ -512,6 +550,10 @@ const TableDetail: React.FC = () => {
                         sx={{
                           color: player.showMe ? '#2196f3' : '#bdbdbd',
                           cursor: 'pointer',
+<<<<<<< HEAD
+=======
+                          opacity: 1,
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
                           '&:hover': {
                             backgroundColor: 'transparent'
                           }
@@ -529,6 +571,7 @@ const TableDetail: React.FC = () => {
                     </Box>
                   </Box>
 
+<<<<<<< HEAD
                   {player.active ? (
                     // תצוגה לשחקן פעיל
                     <Typography variant="body2" sx={{ mt: 2, mb: 2 }}>
@@ -558,6 +601,10 @@ const TableDetail: React.FC = () => {
                       </Typography>
                     </Box>
                   )}
+=======
+                  <Typography variant="body2">Chips: {player.chips}</Typography>
+                  <Typography variant="body2">Total Buy In: {player.totalBuyIn}</Typography>
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 
                   <Button 
                     size="small"
@@ -738,6 +785,7 @@ const TableDetail: React.FC = () => {
               Buy Ins
             </Typography>
             <List>
+<<<<<<< HEAD
               {selectedPlayer?.buyIns && selectedPlayer.buyIns.length > 0 ? (
                 selectedPlayer.buyIns.map((buyIn, index) => (
                   <ListItem key={buyIn.id} sx={{
@@ -765,11 +813,32 @@ const TableDetail: React.FC = () => {
                     primary={
                       <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                         No buy-ins recorded.
+=======
+              {selectedPlayer?.buyIns?.map((buyIn, index) => (
+                <ListItem key={buyIn.id} sx={{
+                  bgcolor: 'rgba(33, 150, 243, 0.1)',
+                  borderRadius: 1,
+                  mb: 1
+                }}>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ color: 'white' }}>
+                        Buy In #{index + 1}: ${buyIn.amount}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                        {new Date(buyIn.timestamp).toLocaleString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
                       </Typography>
                     }
                   />
                 </ListItem>
+<<<<<<< HEAD
               )}
+=======
+              ))}
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
             </List>
           </Box>
 

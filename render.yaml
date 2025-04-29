@@ -2,8 +2,10 @@ services:
   - type: web
     name: poker-management
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: serve -s build
+    buildCommand: |
+      npm ci
+      npm run build
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -15,4 +17,4 @@ services:
       sizeGB: 1
     healthCheckPath: /
     autoDeploy: true
-    plan: free 
+    plan: free

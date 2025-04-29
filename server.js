@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 
 const app = express();
+<<<<<<< HEAD
 const port = process.env.PORT || 10000;
 
 // Ensure data directory exists
@@ -51,22 +52,51 @@ app.use(cors({
 // Parse JSON bodies
 app.use(express.json());
 
+=======
+const PORT = process.env.PORT || 10000;
+
+// Enable CORS for all routes
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://poker-management.onrender.com', 'http://localhost:3000']
+    : 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Middleware to parse JSON bodies
+app.use(express.json());
+
+// Serve static files from the React app
+const buildPath = path.join(__dirname, 'build');
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath));
+  console.log('Serving static files from build directory');
+} else {
+  console.warn('Build directory not found. Static files will not be served.');
+}
+
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 // Add request logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
 });
 
+<<<<<<< HEAD
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
 
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 // --- Database Initialization ---
 let db; // Declare db variable
 
 function initializeDatabase() {
+<<<<<<< HEAD
   // Verify data directory exists and is writable
   const dataDir = path.join(__dirname, 'data');
   try {
@@ -81,6 +111,8 @@ function initializeDatabase() {
     process.exit(1);
   }
 
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
   db.serialize(() => {
     // Create users table if it doesn't exist
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -235,6 +267,10 @@ app.get('/api/tables', authenticate, (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
+<<<<<<< HEAD
+=======
+    console.log('Fetched tables from DB:', tables); // DEBUG LOG
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
     // Get players and their buyins/cashouts for each table
     const promises = tables.map(table => {
       return new Promise((resolve, reject) => {
@@ -962,6 +998,7 @@ app.get('/api/public/tables', (req, res) => {
   });
 });
 
+<<<<<<< HEAD
 // Handle React routing, return all requests to React app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
@@ -973,4 +1010,58 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`Database path: ${dbPath}`);
   // Perform initial backup
   backupDatabase();
+=======
+// TEMP: Reset users endpoint (for development only!)
+app.post('/api/dev/reset-users', (req, res) => {
+  const users = [
+    { username: 'admin', password: '365Scores!', role: 'admin' },
+    { username: 'Doron', password: '365Scores!', role: 'viewer' },
+    { username: 'Ran', password: '365Scores!', role: 'viewer' },
+    { username: 'Bar', password: '365Scores!', role: 'viewer' },
+    { username: 'Lior', password: '365Scores!', role: 'viewer' },
+  ];
+  db.serialize(() => {
+    db.run('DELETE FROM users', [], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to delete users' });
+      }
+      const createdAt = new Date().toISOString();
+      let completed = 0;
+      let hasError = false;
+      users.forEach(user => {
+        const id = require('uuid').v4();
+        db.run(
+          'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [id, user.username, user.password, user.role, createdAt],
+          function(err) {
+            if (err && !hasError) {
+              hasError = true;
+              return res.status(500).json({ error: 'Failed to create user: ' + user.username });
+            }
+            completed++;
+            if (completed === users.length && !hasError) {
+              res.json({ message: 'Users reset successfully', users });
+            }
+          }
+        );
+      });
+    });
+  });
+});
+
+// All other routes should return the React app
+app.get('*', (req, res) => {
+  if (fs.existsSync(path.join(buildPath, 'index.html'))) {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  } else {
+    res.status(404).json({ error: 'Not found' });
+  }
+});
+
+// --- Start Server --- 
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`API URL: ${process.env.REACT_APP_API_URL}`);
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 }); 
