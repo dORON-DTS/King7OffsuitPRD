@@ -233,6 +233,8 @@ const TableList: React.FC = () => {
       
       await navigator.clipboard.writeText(shareUrl);
       setShowShareAlert(true);
+      // Open in new tab
+      window.open(shareUrl, '_blank');
     } catch (error) {
       // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement('textarea');
@@ -243,6 +245,8 @@ const TableList: React.FC = () => {
       try {
         document.execCommand('copy');
         setShowShareAlert(true);
+        // Open in new tab
+        window.open(shareUrl, '_blank');
       } catch (err) {
         console.error('Failed to copy:', err);
         alert('Failed to copy share link. Please copy this URL manually: ' + shareUrl);
