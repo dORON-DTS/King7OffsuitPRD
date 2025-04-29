@@ -59,11 +59,7 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-<<<<<<< HEAD
-      const response = await fetch('/api/login', {
-=======
       const response = await fetch(`${process.env.REACT_APP_API_URL}/api/login`, {
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
