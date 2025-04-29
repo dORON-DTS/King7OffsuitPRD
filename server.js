@@ -144,39 +144,61 @@ function initializeDatabase() {
 
     // Create initial admin user if not exists
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    console.log('[Init] Starting admin user creation process');
+    console.log('[Init] Using password from:', process.env.ADMIN_PASSWORD ? 'environment' : 'default');
+    
     bcrypt.hash(adminPassword, 10, (err, hash) => {
       if (err) {
-        console.error('Error hashing admin password:', err);
+        console.error('[Init] Error hashing admin password:', err);
         return;
       }
+      console.log('[Init] Admin password hashed successfully');
 
       db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, user) => {
         if (err) {
-          console.error('Error checking for admin user:', err);
+          console.error('[Init] Error checking for admin user:', err);
           return;
         }
 
         if (!user) {
+          console.log('[Init] Admin user not found, creating new admin user');
           db.run(
             'INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, ?)',
             [uuidv4(), 'admin', hash, 'admin'],
             (err) => {
               if (err) {
-                console.error('Error creating admin user:', err);
+                console.error('[Init] Error creating admin user:', err);
               } else {
-                console.log('Admin user created successfully');
+                console.log('[Init] Admin user created successfully');
               }
             }
           );
+        } else {
+          console.log('[Init] Admin user already exists');
         }
       });
+    });
+
+    // Add logging for all existing users
+    db.all('SELECT id, username, role FROM users', [], (err, users) => {
+      if (err) {
+        console.error('[Init] Error fetching users:', err);
+        return;
+      }
+      console.log('[Init] Existing users in database:', users);
     });
   });
 }
 
 // Authentication middleware
 const authenticate = (req, res, next) => {
-  console.log('[Auth] Checking authentication for request:', req.path);
+  console.log('[Auth] Request received:', {
+    path: req.path,
+    method: req.method,
+    headers: req.headers,
+    ip: req.ip
+  });
+
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     console.log('[Auth] No authorization header found');
@@ -185,14 +207,18 @@ const authenticate = (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   if (!token) {
-    console.log('[Auth] Invalid authorization header format');
+    console.log('[Auth] Invalid authorization header format:', authHeader);
     return res.status(401).json({ error: 'Invalid token format' });
   }
 
   try {
     console.log('[Auth] Verifying token');
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log('[Auth] Token verified successfully for user:', decoded.username);
+    console.log('[Auth] Token verified successfully:', {
+      id: decoded.id,
+      username: decoded.username,
+      role: decoded.role
+    });
     req.user = decoded;
     next();
   } catch (err) {
@@ -213,14 +239,20 @@ const authorize = (roles) => {
 
 // Routes
 app.post('/api/login', (req, res) => {
-  console.log('[Login] Attempting login for user:', req.body.username);
+  console.log('[Login] Request received:', {
+    body: { ...req.body, password: req.body.password ? '***' : undefined },
+    headers: req.headers,
+    ip: req.ip
+  });
+
   const { username, password } = req.body;
 
   if (!username || !password) {
-    console.log('[Login] Missing username or password');
+    console.log('[Login] Missing credentials:', { username: !!username, password: !!password });
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
+  console.log('[Login] Querying database for user:', username);
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err) {
       console.error('[Login] Database error:', err.message);
@@ -232,7 +264,9 @@ app.post('/api/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    console.log('[Login] User found, comparing password');
+    console.log('[Login] User found:', { id: user.id, username: user.username, role: user.role });
+    console.log('[Login] Comparing password');
+    
     bcrypt.compare(password, user.password, (err, match) => {
       if (err) {
         console.error('[Login] Password comparison error:', err.message);
@@ -252,12 +286,14 @@ app.post('/api/login', (req, res) => {
       );
 
       console.log('[Login] Login successful for user:', username);
-      res.json({ 
+      const response = { 
         token, 
         username: user.username, 
         role: user.role,
         id: user.id
-      });
+      };
+      console.log('[Login] Sending response:', { ...response, token: '***' });
+      res.json(response);
     });
   });
 });
