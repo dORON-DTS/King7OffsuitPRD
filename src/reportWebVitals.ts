@@ -8,25 +8,25 @@ const reportWebVitals = (onPerfEntry?: (metric: any) => void) => {
     console.log('Attempting to import web-vitals dynamically...');
     import('web-vitals').then((module) => {
       console.log('Dynamic import successful, available exports:', Object.keys(module));
-      if (module.getCLS) {
-        console.log('Calling getCLS...');
-        module.getCLS(onPerfEntry);
+      if (module.onCLS) {
+        console.log('Calling onCLS...');
+        module.onCLS(onPerfEntry);
       }
-      if (module.getFID) {
-        console.log('Calling getFID...');
-        module.getFID(onPerfEntry);
+      if (module.onFID) {
+        console.log('Calling onFID...');
+        module.onFID(onPerfEntry);
       }
-      if (module.getFCP) {
-        console.log('Calling getFCP...');
-        module.getFCP(onPerfEntry);
+      if (module.onFCP) {
+        console.log('Calling onFCP...');
+        module.onFCP(onPerfEntry);
       }
-      if (module.getLCP) {
-        console.log('Calling getLCP...');
-        module.getLCP(onPerfEntry);
+      if (module.onLCP) {
+        console.log('Calling onLCP...');
+        module.onLCP(onPerfEntry);
       }
-      if (module.getTTFB) {
-        console.log('Calling getTTFB...');
-        module.getTTFB(onPerfEntry);
+      if (module.onTTFB) {
+        console.log('Calling onTTFB...');
+        module.onTTFB(onPerfEntry);
       }
     }).catch((error) => {
       console.error('Error importing web-vitals:', error);
