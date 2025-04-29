@@ -252,7 +252,7 @@ const LandingPage: React.FC = () => {
         <Button
           variant="contained"
           size="large"
-          onClick={() => navigate(user ? '/tables' : '/login')}
+          onClick={() => navigate(user ? '/tables' : '/tableslist')}
           sx={{
             mt: { xs: 2, sm: 4 },
             bgcolor: '#3498db',
