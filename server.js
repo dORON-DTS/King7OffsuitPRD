@@ -32,18 +32,27 @@ app.use(morgan('combined'));
 app.use(express.static(path.join(__dirname, 'build')));
 
 // Database setup
-const dbPath = path.join(__dirname, 'poker.db');
-const backupPath = path.join(__dirname, 'backup');
+const dbPath = process.env.RENDER ? 
+  '/opt/render/project/src/data/poker.db' : 
+  path.join(__dirname, 'poker.db');
+
+const backupPath = process.env.RENDER ? 
+  '/opt/render/project/src/data/backup' : 
+  path.join(__dirname, 'backup');
+
+console.log('[DB] Using database path:', dbPath);
+console.log('[DB] Using backup path:', backupPath);
 
 if (!fs.existsSync(backupPath)) {
-  fs.mkdirSync(backupPath);
+  console.log('[DB] Creating backup directory:', backupPath);
+  fs.mkdirSync(backupPath, { recursive: true });
 }
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('Error opening database:', err);
+    console.error('[DB] Error opening database:', err);
   } else {
-    console.log('Connected to SQLite database');
+    console.log('[DB] Connected to SQLite database at:', dbPath);
     initializeDatabase();
   }
 });
