@@ -94,15 +94,26 @@ setInterval(backupDatabase, 24 * 60 * 60 * 1000);
 
 // Database initialization
 function initializeDatabase() {
+  console.log('[Init] Starting database initialization');
+  console.log('[Init] Database path:', dbPath);
+  console.log('[Init] Database exists:', fs.existsSync(dbPath));
+
   db.serialize(() => {
     // Users table
+    console.log('[Init] Creating users table if not exists');
     db.run(`CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE,
       password TEXT,
       role TEXT DEFAULT 'user',
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-    )`);
+    )`, function(err) {
+      if (err) {
+        console.error('[Init] Error creating users table:', err);
+      } else {
+        console.log('[Init] Users table created/verified');
+      }
+    });
 
     // Tables table
     db.run(`CREATE TABLE IF NOT EXISTS tables (
@@ -160,6 +171,8 @@ function initializeDatabase() {
       }
       console.log('[Init] Admin password hashed successfully');
 
+      // First, check if admin user exists
+      console.log('[Init] Checking for existing admin user');
       db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, user) => {
         if (err) {
           console.error('[Init] Error checking for admin user:', err);
@@ -186,22 +199,34 @@ function initializeDatabase() {
                 });
               } else {
                 console.log('[Init] Admin user created successfully');
+                console.log('[Init] Rows affected:', this.changes);
               }
             }
           );
         } else {
-          console.log('[Init] Admin user already exists:', user);
+          console.log('[Init] Admin user already exists:', {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            createdAt: user.createdAt
+          });
         }
       });
-    });
 
-    // Add logging for all existing users
-    db.all('SELECT id, username, role, createdAt FROM users', [], (err, users) => {
-      if (err) {
-        console.error('[Init] Error fetching users:', err);
-        return;
-      }
-      console.log('[Init] Existing users in database:', users);
+      // Log all existing users
+      console.log('[Init] Fetching all existing users');
+      db.all('SELECT id, username, role, createdAt FROM users', [], (err, users) => {
+        if (err) {
+          console.error('[Init] Error fetching users:', err);
+          return;
+        }
+        console.log('[Init] Existing users in database:', users.map(u => ({
+          id: u.id,
+          username: u.username,
+          role: u.role,
+          createdAt: u.createdAt
+        })));
+      });
     });
   });
 }
@@ -678,6 +703,50 @@ app.get('/api/users/me', authenticate, (req, res) => {
 
     console.log('[Users/Me] Found user in database:', user);
     res.json(user);
+  });
+});
+
+// Get all users
+app.get('/api/users', authenticate, authorize(['admin']), (req, res) => {
+  console.log('[Users] Fetching all users - Request received:', {
+    user: req.user,
+    headers: req.headers,
+    ip: req.ip
+  });
+
+  console.log('[Users] Executing database query');
+  db.all('SELECT id, username, role, createdAt FROM users', [], (err, users) => {
+    if (err) {
+      console.error('[Users] Database error:', {
+        message: err.message,
+        code: err.code,
+        stack: err.stack
+      });
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    console.log('[Users] Database query completed:', {
+      userCount: users.length,
+      users: users.map(u => ({ id: u.id, username: u.username, role: u.role }))
+    });
+
+    // Log database file status
+    console.log('[Users] Database file status:', {
+      exists: fs.existsSync(dbPath),
+      path: dbPath,
+      size: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 'N/A'
+    });
+
+    // Verify database connection
+    db.get('SELECT COUNT(*) as count FROM users', [], (err, result) => {
+      if (err) {
+        console.error('[Users] Error verifying database connection:', err);
+      } else {
+        console.log('[Users] Database connection verified. User count:', result.count);
+      }
+    });
+
+    res.json(users);
   });
 });
 
