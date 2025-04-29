@@ -20,14 +20,21 @@ import {
   Card,
   CardContent,
   TextField,
+<<<<<<< HEAD
   TableSortLabel,
   TablePagination
+=======
+  TableSortLabel
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
 import PlayerStatsDialog from './PlayerStatsDialog';
+<<<<<<< HEAD
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import PetsIcon from '@mui/icons-material/Pets';
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 
 interface PlayerStats {
   id: string;
@@ -134,7 +141,11 @@ const useAnimatedCounter = (targetValue: number, duration: number = 1000) => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
+<<<<<<< HEAD
   }, [targetValue, duration, count]); // Added count to dependencies
+=======
+  }, [targetValue, duration]); // Remove count from dependencies
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 
   return count;
 };
@@ -152,6 +163,7 @@ const formatResult = (value: number | undefined): string => {
   return value > 0 ? `+${rounded}` : rounded.toString();
 };
 
+<<<<<<< HEAD
 // Add visuallyHidden style
 const visuallyHidden = {
   border: 0,
@@ -174,6 +186,8 @@ interface HeadCell {
   width: string;
 }
 
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 const StatisticsView: React.FC = () => {
   const { tables: contextTables, isLoading: contextLoading, error: contextError, fetchTables } = usePoker();
   const { user } = useUser();
@@ -183,6 +197,7 @@ const StatisticsView: React.FC = () => {
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+<<<<<<< HEAD
   const [order, setOrder] = useState<Order>('desc');
   const [orderBy, setOrderBy] = useState<keyof PlayerStats>('netResult');
 
@@ -192,10 +207,24 @@ const StatisticsView: React.FC = () => {
     minLoss: number; minLossPlayer: string; 
   }>({ maxWin: 0, maxWinPlayer: '-', minLoss: 0, minLossPlayer: '-' });
 
+=======
+  
+  // Add state to track single game win/loss
+  const [singleGameStats, setSingleGameStats] = useState<{ 
+      maxWin: number; maxWinPlayer: string; 
+      minLoss: number; minLossPlayer: string; 
+  }>({ maxWin: 0, maxWinPlayer: '-', minLoss: 0, minLossPlayer: '-' });
+
+  // State for sorting
+  const [order, setOrder] = useState<Order>('desc');
+  const [orderBy, setOrderBy] = useState<keyof PlayerStats>('netResult'); // Default sort by netResult desc
+
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
   // Re-add state for Dialog
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerStats | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
+<<<<<<< HEAD
   // Add state for top players by net result
   const [topPlayersByNetResult, setTopPlayersByNetResult] = useState<PlayerStats[]>([]);
 
@@ -204,6 +233,10 @@ const StatisticsView: React.FC = () => {
 
   // Function to handle sort request
   const handleRequestSort = (event: React.MouseEvent<unknown>, property: keyof PlayerStats) => {
+=======
+  // Function to handle sort request
+  const handleRequestSort = (property: keyof PlayerStats) => {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
@@ -249,7 +282,10 @@ const StatisticsView: React.FC = () => {
     }
   }, [user, contextLoading, contextTables, initialLoadComplete, fetchTables]);
 
+<<<<<<< HEAD
   // Calculate player stats
+=======
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
   const playerStats = useMemo(() => {
     const statsMap: { [key: string]: AggregatedPlayerStats } = {};
     // Variables to track overall single game max/min
@@ -375,8 +411,14 @@ const StatisticsView: React.FC = () => {
     if (minGames > 0) {
       filtered = playerStats.filter(stat => stat.tablesPlayed >= minGames);
     }
+<<<<<<< HEAD
     return filtered;
   }, [playerStats, minGamesFilter]);
+=======
+    // Apply sorting
+    return stableSort(filtered, getComparator(order, orderBy));
+  }, [playerStats, minGamesFilter, order, orderBy]); // Add order and orderBy dependencies
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
 
   // Calculate overall stats for top cards (using non-filtered stats)
   const overallStats = useMemo(() => {
@@ -406,6 +448,7 @@ const StatisticsView: React.FC = () => {
   // Use the animated counter hook for totalBuyIn
   const animatedTotalBuyIn = useAnimatedCounter(overallStats.totalBuyIn);
 
+<<<<<<< HEAD
   // Calculate top players by net result
   useEffect(() => {
     const sortedByNetResult = [...playerStats].sort((a, b) => b.netResult - a.netResult);
@@ -520,11 +563,29 @@ const StatisticsView: React.FC = () => {
       label: 'Worst Result',
       width: '100px'
     }
+=======
+  // Define headers for sorting
+  const headCells: { id: keyof PlayerStats; label: string; numeric: boolean }[] = [
+    { id: 'name', numeric: false, label: 'Player' },
+    { id: 'totalBuyIn', numeric: true, label: 'Total Buy-In' },
+    { id: 'totalCashOut', numeric: true, label: 'Total Value' },
+    { id: 'netResult', numeric: true, label: 'Net Result' },
+    { id: 'tablesPlayed', numeric: true, label: 'Tables Played' },
+    { id: 'avgBuyIn', numeric: true, label: 'Avg Buy-In' },
+    { id: 'avgNetResult', numeric: true, label: 'Avg Net' },
+    { id: 'largestWin', numeric: true, label: 'Largest Win' },
+    { id: 'largestLoss', numeric: true, label: 'Largest Loss' },
+    { id: 'gamesWon', numeric: true, label: 'Record (W-L)' },
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
   ];
 
   if (loading || (user && contextLoading)) {
     return (
+<<<<<<< HEAD
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+=======
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         <CircularProgress />
       </Box>
     );
@@ -535,6 +596,7 @@ const StatisticsView: React.FC = () => {
   }
 
   return (
+<<<<<<< HEAD
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
@@ -886,6 +948,361 @@ const StatisticsView: React.FC = () => {
       </Box>
 
       {/* Dialog */}
+=======
+    <Box sx={{
+      p: 3,
+      bgcolor: '#121212',
+      minHeight: '100vh',
+      color: 'white',
+      width: '100vw',
+      maxWidth: '100vw',
+      position: 'relative',
+      left: '50%',
+      right: '50%',
+      marginLeft: '-50vw',
+      marginRight: '-50vw',
+      '@media (max-width:900px)': {
+        width: '100%',
+        maxWidth: '100%',
+        marginLeft: 0,
+        marginRight: 0,
+        left: 0,
+        right: 0,
+      }
+    }}>
+      <AppBar position="static" color="transparent" elevation={0} sx={{ mb: 3 }}>
+        <Toolbar>
+          <IconButton edge="start" color="inherit" onClick={() => navigate(-1)} aria-label="back">
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" component="h1" sx={{ flexGrow: 1, textAlign: 'center' }}>
+            Player Statistics
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      {/* Top Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4, width: '100%' }}>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ bgcolor: '#1e1e1e', color: 'white' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: 'grey.400' }}>Total Buy In</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {animatedTotalBuyIn.toLocaleString()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ bgcolor: '#1e1e1e', color: 'white' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: 'grey.400' }}>Biggest Single Game Win / Loss</Typography>
+              {singleGameStats.maxWin > 0 ? (
+                <Typography variant="body1" sx={{ color: 'success.main' }}>
+                  {singleGameStats.maxWinPlayer} with +{singleGameStats.maxWin}
+                </Typography>
+              ) : (
+                <Typography variant="body2" sx={{ color: 'grey.500' }}>No single game wins yet</Typography>
+              )}
+              {singleGameStats.minLoss < 0 ? (
+                <Typography variant="body1" sx={{ color: 'error.main' }}>
+                  {singleGameStats.minLossPlayer} with {singleGameStats.minLoss}
+                </Typography>
+              ) : (
+                <Typography variant="body2" sx={{ color: 'grey.500' }}>No single game losses yet</Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ bgcolor: '#1e1e1e', color: 'white' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: 'grey.400' }}>Played the Most</Typography>
+              {overallStats.mostPlayed ? (
+                <Typography variant="h5">{overallStats.mostPlayed.name} ({overallStats.mostPlayed.tablesPlayed} tables)</Typography>
+              ) : (
+                 <Typography variant="body2" sx={{ color: 'grey.500' }}>N/A</Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Filter Input */}
+      <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
+        <Typography variant="caption" sx={{ color: 'grey.400', mb: 0.5 }}>
+          Min Games
+        </Typography>
+        <TextField
+          type="number"
+          variant="outlined"
+          size="small"
+          value={minGamesFilter}
+          onChange={(e) => setMinGamesFilter(e.target.value)}
+          InputProps={{
+            style: { color: 'white' },
+            inputProps: { 
+              min: 0,
+              max: 999,
+              style: { width: '50px' }
+            }
+          }}
+          sx={{
+            width: '80px',
+            '& .MuiOutlinedInput-root': {
+              '& fieldset': {
+                borderColor: 'grey.700',
+              },
+              '&:hover fieldset': {
+                borderColor: 'grey.500',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: 'primary.main',
+              },
+            },
+          }}
+        />
+      </Box>
+
+      {/* Player Statistics Table */}
+      <TableContainer component={Paper} sx={{
+        bgcolor: '#1e1e1e',
+        overflowX: 'auto',
+        maxHeight: 'calc(100vh - 300px)',
+        width: '100%',
+        '@media (min-width:900px)': {
+          maxWidth: '100vw',
+        }
+      }}>
+        <Table stickyHeader aria-label="player statistics table" size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell align="center" sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                position: 'sticky',
+                left: 0,
+                zIndex: (theme) => theme.zIndex.appBar + 2,
+                bgcolor: '#1e1e1e',
+                width: '60px'
+              }}>
+                RANK
+              </TableCell>
+              <TableCell sx={{ 
+                color: 'white', 
+                fontWeight: 'bold',
+                position: 'sticky',
+                left: 60,
+                zIndex: (theme) => theme.zIndex.appBar + 2,
+                bgcolor: '#1e1e1e'
+              }}>
+                <TableSortLabel
+                  active={orderBy === 'name'}
+                  direction={orderBy === 'name' ? order : 'asc'}
+                  onClick={() => handleRequestSort('name')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  PLAYER
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'netResult'}
+                  direction={orderBy === 'netResult' ? order : 'desc'}
+                  onClick={() => handleRequestSort('netResult')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  NET RESULT
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'tablesPlayed'}
+                  direction={orderBy === 'tablesPlayed' ? order : 'desc'}
+                  onClick={() => handleRequestSort('tablesPlayed')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  GAMES PLAYED
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'totalBuyIn'}
+                  direction={orderBy === 'totalBuyIn' ? order : 'desc'}
+                  onClick={() => handleRequestSort('totalBuyIn')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  TOTAL BUY-IN
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'totalCashOut'}
+                  direction={orderBy === 'totalCashOut' ? order : 'desc'}
+                  onClick={() => handleRequestSort('totalCashOut')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  TOTAL CASH-OUT
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'avgBuyIn'}
+                  direction={orderBy === 'avgBuyIn' ? order : 'desc'}
+                  onClick={() => handleRequestSort('avgBuyIn')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  AVG BUY-IN
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'avgNetResult'}
+                  direction={orderBy === 'avgNetResult' ? order : 'desc'}
+                  onClick={() => handleRequestSort('avgNetResult')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  AVG NET RESULT
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'largestWin'}
+                  direction={orderBy === 'largestWin' ? order : 'desc'}
+                  onClick={() => handleRequestSort('largestWin')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  LARGEST WIN
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'largestLoss'}
+                  direction={orderBy === 'largestLoss' ? order : 'desc'}
+                  onClick={() => handleRequestSort('largestLoss')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  LARGEST LOSS
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>
+                <TableSortLabel
+                  active={orderBy === 'gamesWon'}
+                  direction={orderBy === 'gamesWon' ? order : 'desc'}
+                  onClick={() => handleRequestSort('gamesWon')}
+                  sx={{ 
+                    '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                    color: 'white !important' 
+                  }}
+                >
+                  RECORD
+                </TableSortLabel>
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredPlayerStats.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={11} align="center" sx={{ color: 'grey.500' }}> 
+                  No players match the current filter.
+                </TableCell>
+              </TableRow>
+            )}
+            {filteredPlayerStats.map((stat, index) => { 
+                const netResultColor = stat.netResult > 0 ? 'success.main' : stat.netResult < 0 ? 'error.main' : 'text.primary';
+                const formattedNetResult = formatResult(stat.netResult);
+                const avgNetResultColor = stat.avgNetResult > 0 ? 'success.main' : stat.avgNetResult < 0 ? 'error.main' : 'text.primary';
+                const formattedAvgNetResult = formatResult(stat.avgNetResult);
+
+                return (
+                    <TableRow 
+                        key={stat.id} 
+                        sx={{ 
+                            '&:last-child td, &:last-child th': { border: 0 },
+                            cursor: 'pointer',
+                            '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)' } 
+                        }}
+                        onClick={() => handlePlayerRowClick(stat)}
+                    >
+                        <TableCell align="center" sx={{ 
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: (theme) => theme.zIndex.appBar + 1,
+                            bgcolor: 'background.paper',
+                            width: '60px',
+                            color: 'white',
+                            textAlign: 'center',
+                            fontWeight: 'bold'
+                        }}>
+                            #{index + 1}
+                        </TableCell>
+                        <TableCell sx={{ 
+                            position: 'sticky',
+                            left: 60,
+                            zIndex: (theme) => theme.zIndex.appBar + 1,
+                            bgcolor: 'background.paper'
+                        }}>
+                            {stat.name}
+                            {stat.nickname && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                    ({stat.nickname})
+                                </Typography>
+                            )}
+                        </TableCell>
+                        <TableCell align="center" sx={{ 
+                            color: netResultColor,
+                            fontWeight: 'bold'
+                        }}>
+                            {formattedNetResult}
+                        </TableCell>
+                        <TableCell align="center">{stat.tablesPlayed}</TableCell>
+                        <TableCell align="center">{formatStat(stat.totalBuyIn)}</TableCell>
+                        <TableCell align="center">{formatStat(stat.totalCashOut)}</TableCell>
+                        <TableCell align="center">{formatStat(stat.avgBuyIn)}</TableCell> 
+                        <TableCell align="center" sx={{ color: avgNetResultColor }}>{formattedAvgNetResult}</TableCell> 
+                        <TableCell align="center" sx={{ color: 'success.main' }}>{formatStat(stat.largestWin)}</TableCell> 
+                        <TableCell align="center" sx={{ color: 'error.main' }}>{formatStat(stat.largestLoss)}</TableCell> 
+                        <TableCell align="center" sx={{ color: 'white' }}>
+                          <span style={{ color: stat.gamesWon > 0 ? '#4caf50' : undefined, fontWeight: 'bold' }}>{formatStat(stat.gamesWon)}</span>
+                          -
+                          <span style={{ color: stat.gamesLost > 0 ? '#f44336' : undefined, fontWeight: 'bold' }}>{formatStat(stat.gamesLost)}</span>
+                        </TableCell> 
+                    </TableRow>
+                );
+            })} 
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Use the PlayerStatsDialog component */} 
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       <PlayerStatsDialog 
         open={isDetailDialogOpen}
         onClose={handleCloseDetailDialog}

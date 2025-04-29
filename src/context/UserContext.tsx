@@ -32,7 +32,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserInfo = async (token: string) => {
     try {
       console.log("[UserContext] Fetching user info with token:", token);
+<<<<<<< HEAD
       const response = await fetch('/api/users/me', {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/me`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         headers: {
           'Authorization': `Bearer ${token}`,
         },

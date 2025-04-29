@@ -241,7 +241,6 @@ const router = createBrowserRouter(
           <UserManagement />
         </ProtectedRoute>
       } />
-      <Route path="groups" element={<Navigate to="/tables" replace />} />
     </Route>
   )
 );

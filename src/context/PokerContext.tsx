@@ -94,8 +94,13 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         throw new Error('Authentication required');
       }
 
+<<<<<<< HEAD
       console.log('Fetching tables from:', '/api/tables'); // Debug log
       const response = await fetch('/api/tables', {
+=======
+      console.log('Fetching tables from:', `${process.env.REACT_APP_API_URL}/api/tables`); // Debug log
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -158,9 +163,15 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
       
       console.log('Creating table with data:', tableData); // Debug log
+<<<<<<< HEAD
       console.log('Sending to:', '/api/tables'); // Debug log
       
       const response = await fetch('/api/tables', {
+=======
+      console.log('Sending to:', `${process.env.REACT_APP_API_URL}/api/tables`); // Debug log
+      
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +205,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         throw new Error('Authentication required');
       }
 
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId, {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -246,7 +261,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId + '/players', {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/players`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newPlayer)
@@ -275,7 +294,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId + '/players/' + playerId, {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/players/${playerId}`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -302,7 +325,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId + '/players/' + playerId + '/chips', {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/players/${playerId}/chips`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ chips: newChips })
@@ -337,7 +364,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId + '/players/' + playerId + '/buyins', {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/players/${playerId}/buyins`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ amount })
@@ -361,7 +392,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId + '/players/' + playerId + '/cashouts', {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/players/${playerId}/cashouts`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ amount })
@@ -387,7 +422,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId + '/status', {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/status`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -414,7 +453,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId + '/players/' + playerId + '/reactivate', {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/players/${playerId}/reactivate`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -437,6 +480,7 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
 
       // Get current player's showMe value
       const table = tables.find(t => t.id === tableId);
@@ -451,6 +495,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({ showMe: !player.showMe })
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}/players/${playerId}/showme`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       });
       
       if (response.ok) {
@@ -461,7 +510,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
     } catch (error) {
+<<<<<<< HEAD
       console.error('Error toggling showMe:', error);
+=======
+      console.error('Error disabling showMe:', error);
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
     }
   };
 
@@ -474,7 +527,11 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!token) {
         throw new Error('Authentication required');
       }
+<<<<<<< HEAD
       const response = await fetch('/api/tables/' + tableId, {
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}`, {
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

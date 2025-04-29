@@ -61,7 +61,11 @@ const SharedTableView: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+<<<<<<< HEAD
       const response = await fetch(`/api/tables/${id}`);
+=======
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${id}`);
+>>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Table not found.');
