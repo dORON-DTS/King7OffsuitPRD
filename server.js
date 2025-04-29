@@ -906,11 +906,89 @@ app.get('/api/debug/db', (req, res) => {
   });
 });
 
+// Get table by ID
+app.get('/api/tables/:id', authenticate, (req, res) => {
+  const tableId = req.params.id;
+  console.log('[Tables] Fetching table by ID:', {
+    tableId,
+    user: req.user,
+    timestamp: new Date().toISOString()
+  });
+
+  db.get('SELECT * FROM tables WHERE id = ?', [tableId], (err, table) => {
+    if (err) {
+      console.error('[Tables] Database error:', {
+        message: err.message,
+        code: err.code,
+        stack: err.stack
+      });
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (!table) {
+      console.log('[Tables] Table not found:', tableId);
+      return res.status(404).json({ error: 'Table not found' });
+    }
+
+    console.log('[Tables] Table found:', {
+      id: table.id,
+      name: table.name,
+      isActive: table.isActive
+    });
+
+    // Get players for the table
+    db.all('SELECT * FROM players WHERE tableId = ?', [tableId], (err, players) => {
+      if (err) {
+        console.error('[Tables] Error fetching players:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      console.log('[Tables] Found players:', players.length);
+
+      const playerPromises = players.map(player => {
+        return new Promise((resolve, reject) => {
+          // Get buy-ins
+          db.all('SELECT * FROM buyins WHERE playerId = ?', [player.id], (err, buyIns) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            // Get cash-outs
+            db.all('SELECT * FROM cashouts WHERE playerId = ?', [player.id], (err, cashOuts) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              resolve({ ...player, buyIns, cashOuts });
+            });
+          });
+        });
+      });
+
+      Promise.all(playerPromises)
+        .then(playersWithTransactions => {
+          console.log('[Tables] Sending response:', {
+            tableId,
+            playerCount: playersWithTransactions.length
+          });
+          res.json({ ...table, players: playersWithTransactions });
+        })
+        .catch(err => {
+          console.error('[Tables] Error processing players:', err);
+          res.status(500).json({ error: 'Internal server error' });
+        });
+    });
+  });
+});
+
 // Serve static files from the React app (moved after API routes)
 app.use(express.static(path.join(__dirname, 'build')));
 
 // Catch all other routes and return the React app
 app.get('*', (req, res) => {
+  console.log('[Static] Serving React app for:', req.path);
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
