@@ -99,8 +99,16 @@ function initializeDatabase() {
   console.log('[Init] Database exists:', fs.existsSync(dbPath));
 
   db.serialize(() => {
+    // First, drop and recreate all tables to ensure clean state
+    console.log('[Init] Dropping existing tables');
+    db.run('DROP TABLE IF EXISTS users');
+    db.run('DROP TABLE IF EXISTS tables');
+    db.run('DROP TABLE IF EXISTS players');
+    db.run('DROP TABLE IF EXISTS buyins');
+    db.run('DROP TABLE IF EXISTS cashouts');
+
     // Users table
-    console.log('[Init] Creating users table if not exists');
+    console.log('[Init] Creating users table');
     db.run(`CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE,
@@ -111,7 +119,7 @@ function initializeDatabase() {
       if (err) {
         console.error('[Init] Error creating users table:', err);
       } else {
-        console.log('[Init] Users table created/verified');
+        console.log('[Init] Users table created');
       }
     });
 
@@ -159,10 +167,9 @@ function initializeDatabase() {
       FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
     )`);
 
-    // Create initial admin user if not exists
+    // Create initial admin user
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    console.log('[Init] Starting admin user creation process');
-    console.log('[Init] Using password from:', process.env.ADMIN_PASSWORD ? 'environment' : 'default');
+    console.log('[Init] Creating admin user with password from:', process.env.ADMIN_PASSWORD ? 'environment' : 'default');
     
     bcrypt.hash(adminPassword, 10, (err, hash) => {
       if (err) {
@@ -171,64 +178,51 @@ function initializeDatabase() {
       }
       console.log('[Init] Admin password hashed successfully');
 
-      // First, check if admin user exists
-      console.log('[Init] Checking for existing admin user');
-      db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, user) => {
-        if (err) {
-          console.error('[Init] Error checking for admin user:', err);
-          return;
-        }
+      const adminId = uuidv4();
+      const createdAt = new Date().toISOString();
+      console.log('[Init] Creating admin user with details:', { 
+        id: adminId, 
+        username: 'admin', 
+        role: 'admin',
+        createdAt 
+      });
+      
+      db.run(
+        'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
+        [adminId, 'admin', hash, 'admin', createdAt],
+        function(err) {
+          if (err) {
+            console.error('[Init] Error creating admin user:', err);
+            console.error('[Init] SQL Error details:', {
+              code: err.code,
+              message: err.message,
+              sql: this.sql,
+              params: this.params
+            });
+          } else {
+            console.log('[Init] Admin user created successfully');
+            console.log('[Init] Rows affected:', this.changes);
 
-        if (!user) {
-          console.log('[Init] Admin user not found, creating new admin user');
-          const adminId = uuidv4();
-          const createdAt = new Date().toISOString();
-          console.log('[Init] Admin user details:', { id: adminId, createdAt });
-          
-          db.run(
-            'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
-            [adminId, 'admin', hash, 'admin', createdAt],
-            function(err) {
+            // Verify admin user was created
+            db.get('SELECT * FROM users WHERE username = ?', ['admin'], (err, user) => {
               if (err) {
-                console.error('[Init] Error creating admin user:', err);
-                console.error('[Init] SQL Error details:', {
-                  code: err.code,
-                  message: err.message,
-                  sql: this.sql,
-                  params: this.params
-                });
+                console.error('[Init] Error verifying admin user:', err);
+              } else if (!user) {
+                console.error('[Init] Admin user not found after creation');
               } else {
-                console.log('[Init] Admin user created successfully');
-                console.log('[Init] Rows affected:', this.changes);
+                console.log('[Init] Admin user verified:', {
+                  id: user.id,
+                  username: user.username,
+                  role: user.role,
+                  createdAt: user.createdAt,
+                  hasPassword: !!user.password,
+                  passwordLength: user.password ? user.password.length : 0
+                });
               }
-            }
-          );
-        } else {
-          console.log('[Init] Admin user already exists:', {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-            createdAt: user.createdAt,
-            hasPassword: !!user.password,
-            passwordLength: user.password ? user.password.length : 0
-          });
+            });
+          }
         }
-      });
-
-      // Log all existing users
-      console.log('[Init] Fetching all existing users');
-      db.all('SELECT id, username, role, createdAt FROM users', [], (err, users) => {
-        if (err) {
-          console.error('[Init] Error fetching users:', err);
-          return;
-        }
-        console.log('[Init] Existing users in database:', users.map(u => ({
-          id: u.id,
-          username: u.username,
-          role: u.role,
-          createdAt: u.createdAt
-        })));
-      });
+      );
     });
   });
 }
