@@ -626,6 +626,8 @@ app.put('/api/tables/:tableId/players/:playerId/showme', authenticate, authorize
 // Get current user info
 app.get('/api/users/me', authenticate, (req, res) => {
   console.log('[Users/Me] Getting user info for:', req.user.id);
+  console.log('[Users/Me] User object from token:', req.user);
+  
   db.get('SELECT id, username, role, createdAt FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err) {
       console.error('[Users/Me] Database error:', err.message);
@@ -633,12 +635,62 @@ app.get('/api/users/me', authenticate, (req, res) => {
     }
 
     if (!user) {
-      console.log('[Users/Me] User not found:', req.user.id);
+      console.log('[Users/Me] User not found in database:', req.user.id);
+      console.log('[Users/Me] Checking all users in database...');
+      
+      // Log all users in database
+      db.all('SELECT id, username, role FROM users', [], (err, users) => {
+        if (err) {
+          console.error('[Users/Me] Error fetching all users:', err);
+        } else {
+          console.log('[Users/Me] All users in database:', users);
+        }
+      });
+      
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('[Users/Me] Returning user data:', user);
+    console.log('[Users/Me] Found user in database:', user);
     res.json(user);
+  });
+});
+
+// Add a debug endpoint to check database status
+app.get('/api/debug/db', (req, res) => {
+  console.log('[Debug] Checking database status');
+  
+  // Check if database file exists
+  const dbExists = fs.existsSync(dbPath);
+  console.log('[Debug] Database file exists:', dbExists);
+  
+  if (!dbExists) {
+    return res.status(500).json({ error: 'Database file not found', path: dbPath });
+  }
+
+  // Get all tables
+  db.all("SELECT name FROM sqlite_master WHERE type='table'", [], (err, tables) => {
+    if (err) {
+      console.error('[Debug] Error getting tables:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    
+    console.log('[Debug] Database tables:', tables);
+    
+    // Get all users
+    db.all('SELECT id, username, role FROM users', [], (err, users) => {
+      if (err) {
+        console.error('[Debug] Error getting users:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      
+      console.log('[Debug] All users:', users);
+      res.json({
+        dbPath,
+        dbExists,
+        tables,
+        users
+      });
+    });
   });
 });
 
