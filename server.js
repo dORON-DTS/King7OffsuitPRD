@@ -554,6 +554,23 @@ app.put('/api/tables/:tableId/players/:playerId/showme', authenticate, authorize
   );
 });
 
+// Get current user info
+app.get('/api/users/me', authenticate, (req, res) => {
+  db.get('SELECT id, username, role, createdAt FROM users WHERE id = ?', [req.user.id], (err, user) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json(user);
+  });
+});
+
 // Catch all other routes and return the React app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
