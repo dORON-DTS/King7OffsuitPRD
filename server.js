@@ -157,7 +157,8 @@ app.post('/api/login', (req, res) => {
   console.log('[Login] Request received:', {
     body: { ...req.body, password: req.body.password ? '***' : undefined },
     headers: req.headers,
-    ip: req.ip
+    ip: req.ip,
+    timestamp: new Date().toISOString()
   });
 
   const { username, password } = req.body;
@@ -166,49 +167,90 @@ app.post('/api/login', (req, res) => {
     return res.status(400).json({ message: 'Username and password are required' });
   }
 
+  // First, let's check if the user exists
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err) {
-      console.error('[Login] Database error:', err);
+      console.error('[Login] Database error:', {
+        error: err.message,
+        username,
+        timestamp: new Date().toISOString()
+      });
       return res.status(500).json({ message: 'Database error' });
     }
 
-    console.log('[Login] User found:', {
-      id: user?.id,
-      username: user?.username,
+    console.log('[Login] User lookup result:', {
+      found: !!user,
+      username,
+      userId: user?.id,
       role: user?.role,
-      hasPassword: !!user?.password
+      hasPassword: !!user?.password,
+      timestamp: new Date().toISOString()
     });
 
-    if (!user || !user.password) {
-      console.log('[Login] User not found or has no password');
+    if (!user) {
+      console.log('[Login] User not found:', {
+        username,
+        timestamp: new Date().toISOString()
+      });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    if (!user.password) {
+      console.log('[Login] User has no password:', {
+        username,
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Compare passwords
     bcrypt.compare(password, user.password, (err, isMatch) => {
       if (err) {
-        console.error('[Login] Password comparison error:', err);
+        console.error('[Login] Password comparison error:', {
+          error: err.message,
+          username,
+          timestamp: new Date().toISOString()
+        });
         return res.status(500).json({ message: 'Authentication error' });
       }
 
-      console.log('[Login] Password match result:', isMatch);
+      console.log('[Login] Password comparison result:', {
+        username,
+        isMatch,
+        timestamp: new Date().toISOString()
+      });
 
       if (!isMatch) {
+        console.log('[Login] Password mismatch:', {
+          username,
+          timestamp: new Date().toISOString()
+        });
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
+      // Generate token
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '24h' }
       );
 
-      console.log('[Login] Token generated for user:', {
-        id: user.id,
-        username: user.username,
-        role: user.role
+      console.log('[Login] Token generated successfully:', {
+        username,
+        userId: user.id,
+        role: user.role,
+        timestamp: new Date().toISOString()
       });
 
-      res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+      res.json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          role: user.role 
+        } 
+      });
     });
   });
 });
