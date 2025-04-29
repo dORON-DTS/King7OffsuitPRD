@@ -136,15 +136,36 @@ function initializeDatabase() {
   console.log('[Init] Starting database initialization');
   console.log('[Init] Database path:', dbPath);
   console.log('[Init] Database exists:', fs.existsSync(dbPath));
+  console.log('[Init] Environment:', {
+    RENDER: process.env.RENDER,
+    PORT: process.env.PORT,
+    JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'not set',
+    ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ? 'set' : 'not set'
+  });
 
   db.serialize(() => {
     // First, drop and recreate all tables to ensure clean state
     console.log('[Init] Dropping existing tables');
-    db.run('DROP TABLE IF EXISTS users');
-    db.run('DROP TABLE IF EXISTS tables');
-    db.run('DROP TABLE IF EXISTS players');
-    db.run('DROP TABLE IF EXISTS buyins');
-    db.run('DROP TABLE IF EXISTS cashouts');
+    db.run('DROP TABLE IF EXISTS users', function(err) {
+      if (err) console.error('[Init] Error dropping users table:', err);
+      else console.log('[Init] Users table dropped');
+    });
+    db.run('DROP TABLE IF EXISTS tables', function(err) {
+      if (err) console.error('[Init] Error dropping tables table:', err);
+      else console.log('[Init] Tables table dropped');
+    });
+    db.run('DROP TABLE IF EXISTS players', function(err) {
+      if (err) console.error('[Init] Error dropping players table:', err);
+      else console.log('[Init] Players table dropped');
+    });
+    db.run('DROP TABLE IF EXISTS buyins', function(err) {
+      if (err) console.error('[Init] Error dropping buyins table:', err);
+      else console.log('[Init] Buyins table dropped');
+    });
+    db.run('DROP TABLE IF EXISTS cashouts', function(err) {
+      if (err) console.error('[Init] Error dropping cashouts table:', err);
+      else console.log('[Init] Cashouts table dropped');
+    });
 
     // Users table
     console.log('[Init] Creating users table');
@@ -173,7 +194,13 @@ function initializeDatabase() {
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       creatorId TEXT,
       FOREIGN KEY(creatorId) REFERENCES users(id)
-    )`);
+    )`, function(err) {
+      if (err) {
+        console.error('[Init] Error creating tables table:', err);
+      } else {
+        console.log('[Init] Tables table created');
+      }
+    });
 
     // Players table
     db.run(`CREATE TABLE IF NOT EXISTS players (
@@ -186,7 +213,13 @@ function initializeDatabase() {
       active BOOLEAN DEFAULT true,
       showMe BOOLEAN DEFAULT true,
       FOREIGN KEY(tableId) REFERENCES tables(id) ON DELETE CASCADE
-    )`);
+    )`, function(err) {
+      if (err) {
+        console.error('[Init] Error creating players table:', err);
+      } else {
+        console.log('[Init] Players table created');
+      }
+    });
 
     // Buy-ins table
     db.run(`CREATE TABLE IF NOT EXISTS buyins (
@@ -195,7 +228,13 @@ function initializeDatabase() {
       amount INTEGER,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
-    )`);
+    )`, function(err) {
+      if (err) {
+        console.error('[Init] Error creating buyins table:', err);
+      } else {
+        console.log('[Init] Buyins table created');
+      }
+    });
 
     // Cash-outs table
     db.run(`CREATE TABLE IF NOT EXISTS cashouts (
@@ -204,7 +243,13 @@ function initializeDatabase() {
       amount INTEGER,
       timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(playerId) REFERENCES players(id) ON DELETE CASCADE
-    )`);
+    )`, function(err) {
+      if (err) {
+        console.error('[Init] Error creating cashouts table:', err);
+      } else {
+        console.log('[Init] Cashouts table created');
+      }
+    });
 
     // Create initial admin user
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
