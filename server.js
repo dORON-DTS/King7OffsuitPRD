@@ -208,7 +208,9 @@ function initializeDatabase() {
             id: user.id,
             username: user.username,
             role: user.role,
-            createdAt: user.createdAt
+            createdAt: user.createdAt,
+            hasPassword: !!user.password,
+            passwordLength: user.password ? user.password.length : 0
           });
         }
       });
