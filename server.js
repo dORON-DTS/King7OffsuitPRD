@@ -176,17 +176,27 @@ function initializeDatabase() {
 
 // Authentication middleware
 const authenticate = (req, res, next) => {
+  console.log('[Auth] Checking authentication for request:', req.path);
   const authHeader = req.headers.authorization;
   if (!authHeader) {
+    console.log('[Auth] No authorization header found');
     return res.status(401).json({ error: 'No token provided' });
   }
 
   const token = authHeader.split(' ')[1];
+  if (!token) {
+    console.log('[Auth] Invalid authorization header format');
+    return res.status(401).json({ error: 'Invalid token format' });
+  }
+
   try {
+    console.log('[Auth] Verifying token');
     const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('[Auth] Token verified successfully for user:', decoded.username);
     req.user = decoded;
     next();
   } catch (err) {
+    console.log('[Auth] Token verification failed:', err.message);
     res.status(401).json({ error: 'Invalid token' });
   }
 };
@@ -556,17 +566,19 @@ app.put('/api/tables/:tableId/players/:playerId/showme', authenticate, authorize
 
 // Get current user info
 app.get('/api/users/me', authenticate, (req, res) => {
+  console.log('[Users/Me] Getting user info for:', req.user.id);
   db.get('SELECT id, username, role, createdAt FROM users WHERE id = ?', [req.user.id], (err, user) => {
     if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+      console.error('[Users/Me] Database error:', err.message);
+      return res.status(500).json({ error: err.message });
     }
 
     if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
+      console.log('[Users/Me] User not found:', req.user.id);
+      return res.status(404).json({ error: 'User not found' });
     }
 
+    console.log('[Users/Me] Returning user data:', user);
     res.json(user);
   });
 });
