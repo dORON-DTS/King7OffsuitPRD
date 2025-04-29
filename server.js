@@ -171,25 +171,35 @@ function initializeDatabase() {
 
         if (!user) {
           console.log('[Init] Admin user not found, creating new admin user');
+          const adminId = uuidv4();
+          const createdAt = new Date().toISOString();
+          console.log('[Init] Admin user details:', { id: adminId, createdAt });
+          
           db.run(
-            'INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, ?)',
-            [uuidv4(), 'admin', hash, 'admin'],
-            (err) => {
+            'INSERT INTO users (id, username, password, role, createdAt) VALUES (?, ?, ?, ?, ?)',
+            [adminId, 'admin', hash, 'admin', createdAt],
+            function(err) {
               if (err) {
                 console.error('[Init] Error creating admin user:', err);
+                console.error('[Init] SQL Error details:', {
+                  code: err.code,
+                  message: err.message,
+                  sql: this.sql,
+                  params: this.params
+                });
               } else {
                 console.log('[Init] Admin user created successfully');
               }
             }
           );
         } else {
-          console.log('[Init] Admin user already exists');
+          console.log('[Init] Admin user already exists:', user);
         }
       });
     });
 
     // Add logging for all existing users
-    db.all('SELECT id, username, role FROM users', [], (err, users) => {
+    db.all('SELECT id, username, role, createdAt FROM users', [], (err, users) => {
       if (err) {
         console.error('[Init] Error fetching users:', err);
         return;
@@ -265,15 +275,34 @@ app.post('/api/login', (req, res) => {
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err) {
       console.error('[Login] Database error:', err.message);
+      console.error('[Login] SQL Error details:', {
+        code: err.code,
+        message: err.message,
+        sql: this.sql,
+        params: this.params
+      });
       return res.status(500).json({ error: 'Internal server error' });
     }
 
     if (!user) {
       console.log('[Login] User not found:', username);
+      // Log all users to help debug
+      db.all('SELECT id, username, role FROM users', [], (err, users) => {
+        if (err) {
+          console.error('[Login] Error fetching all users:', err);
+        } else {
+          console.log('[Login] All users in database:', users);
+        }
+      });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    console.log('[Login] User found:', { id: user.id, username: user.username, role: user.role });
+    console.log('[Login] User found:', { 
+      id: user.id, 
+      username: user.username, 
+      role: user.role,
+      hasPassword: !!user.password
+    });
     console.log('[Login] Comparing password');
     
     bcrypt.compare(password, user.password, (err, match) => {
