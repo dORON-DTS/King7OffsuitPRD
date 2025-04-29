@@ -283,23 +283,28 @@ app.post('/api/login', (req, res) => {
   console.log('[Login] Request received:', {
     body: { ...req.body, password: req.body.password ? '***' : undefined },
     headers: req.headers,
-    ip: req.ip
+    ip: req.ip,
+    timestamp: new Date().toISOString()
   });
 
   const { username, password } = req.body;
 
   if (!username || !password) {
-    console.log('[Login] Missing credentials:', { username: !!username, password: !!password });
+    console.log('[Login] Missing credentials:', { 
+      username: !!username, 
+      password: !!password,
+      body: req.body
+    });
     return res.status(400).json({ error: 'Username and password are required' });
   }
 
   console.log('[Login] Querying database for user:', username);
   db.get('SELECT * FROM users WHERE username = ?', [username], (err, user) => {
     if (err) {
-      console.error('[Login] Database error:', err.message);
-      console.error('[Login] SQL Error details:', {
-        code: err.code,
+      console.error('[Login] Database error:', {
         message: err.message,
+        code: err.code,
+        stack: err.stack,
         sql: this.sql,
         params: this.params
       });
@@ -313,7 +318,11 @@ app.post('/api/login', (req, res) => {
         if (err) {
           console.error('[Login] Error fetching all users:', err);
         } else {
-          console.log('[Login] All users in database:', users);
+          console.log('[Login] All users in database:', users.map(u => ({
+            id: u.id,
+            username: u.username,
+            role: u.role
+          })));
         }
       });
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -323,15 +332,25 @@ app.post('/api/login', (req, res) => {
       id: user.id, 
       username: user.username, 
       role: user.role,
-      hasPassword: !!user.password
+      hasPassword: !!user.password,
+      passwordLength: user.password ? user.password.length : 0
     });
-    console.log('[Login] Comparing password');
     
+    console.log('[Login] Starting password comparison');
     bcrypt.compare(password, user.password, (err, match) => {
       if (err) {
-        console.error('[Login] Password comparison error:', err.message);
+        console.error('[Login] Password comparison error:', {
+          message: err.message,
+          stack: err.stack
+        });
         return res.status(500).json({ error: 'Internal server error' });
       }
+
+      console.log('[Login] Password comparison result:', {
+        match,
+        providedPasswordLength: password.length,
+        storedPasswordLength: user.password.length
+      });
 
       if (!match) {
         console.log('[Login] Password mismatch for user:', username);
@@ -345,14 +364,23 @@ app.post('/api/login', (req, res) => {
         { expiresIn: '24h' }
       );
 
-      console.log('[Login] Login successful for user:', username);
+      console.log('[Login] Login successful for user:', {
+        username: user.username,
+        role: user.role,
+        tokenLength: token.length
+      });
+
       const response = { 
         token, 
         username: user.username, 
         role: user.role,
         id: user.id
       };
-      console.log('[Login] Sending response:', { ...response, token: '***' });
+      console.log('[Login] Sending response:', { 
+        ...response, 
+        token: '***',
+        status: 'success'
+      });
       res.json(response);
     });
   });
@@ -779,11 +807,24 @@ app.get('/api/debug/db', (req, res) => {
       }
       
       console.log('[Debug] All users:', users);
-      res.json({
-        dbPath,
-        dbExists,
-        tables,
-        users
+
+      // Get admin user specifically
+      db.get('SELECT id, username, role FROM users WHERE username = ?', ['admin'], (err, admin) => {
+        if (err) {
+          console.error('[Debug] Error getting admin user:', err);
+          return res.status(500).json({ error: err.message });
+        }
+
+        console.log('[Debug] Admin user:', admin);
+        
+        res.json({
+          dbPath,
+          dbExists,
+          tables,
+          users,
+          admin,
+          timestamp: new Date().toISOString()
+        });
       });
     });
   });
