@@ -54,27 +54,43 @@ const SharedTableView: React.FC = () => {
 
   const fetchTableData = useCallback(async () => {
     if (!id) {
+      console.log('[SharedTableView] No table ID provided');
       setError('Table ID is missing.');
       setIsLoading(false);
       return;
     }
+    
+    console.log(`[SharedTableView] Fetching table data for ID: ${id}`);
     setIsLoading(true);
     setError(null);
+    
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${id}`);
+      const url = `${process.env.REACT_APP_API_URL}/api/share/${id}`;
+      console.log(`[SharedTableView] Making request to: ${url}`);
+      
+      const response = await fetch(url);
+      console.log(`[SharedTableView] Response status: ${response.status}`);
+      
       if (!response.ok) {
         if (response.status === 404) {
+          console.log('[SharedTableView] Table not found (404)');
           throw new Error('Table not found.');
         } else {
+          console.log(`[SharedTableView] Request failed with status: ${response.status}`);
           throw new Error(`Failed to fetch table: ${response.statusText}`);
         }
       }
+
       const data: TableType = await response.json();
+      console.log('[SharedTableView] Successfully fetched table data:', data);
       setTable(data);
     } catch (fetchError: any) {
-      console.error('Error fetching table data:', fetchError);
+      console.error('[SharedTableView] Error details:', {
+        message: fetchError.message,
+        stack: fetchError.stack,
+      });
       setError(fetchError.message || 'An error occurred while fetching the table.');
-      setTable(null); // Clear table data on error
+      setTable(null);
     } finally {
       setIsLoading(false);
     }

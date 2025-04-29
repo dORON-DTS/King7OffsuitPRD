@@ -998,6 +998,93 @@ app.post('/api/register', authenticate, authorize(['admin']), (req, res) => {
   });
 });
 
+// Get shared table by ID (public access)
+app.get('/api/share/:id', (req, res) => {
+  const tableId = req.params.id;
+  console.log('[Share] Fetching shared table by ID:', {
+    tableId,
+    timestamp: new Date().toISOString(),
+    ip: req.ip
+  });
+
+  db.get('SELECT * FROM tables WHERE id = ?', [tableId], (err, table) => {
+    if (err) {
+      console.error('[Share] Database error:', {
+        message: err.message,
+        code: err.code,
+        stack: err.stack,
+        tableId
+      });
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (!table) {
+      console.log('[Share] Table not found:', {
+        tableId,
+        timestamp: new Date().toISOString()
+      });
+      return res.status(404).json({ error: 'Table not found' });
+    }
+
+    console.log('[Share] Table found, fetching players:', {
+      tableId,
+      tableName: table.name,
+      timestamp: new Date().toISOString()
+    });
+
+    db.all('SELECT * FROM players WHERE tableId = ?', [tableId], (err, players) => {
+      if (err) {
+        console.error('[Share] Error fetching players:', {
+          message: err.message,
+          code: err.code,
+          stack: err.stack,
+          tableId
+        });
+        return res.status(500).json({ error: 'Error fetching players' });
+      }
+
+      const playerPromises = players.map(player => {
+        return new Promise((resolve, reject) => {
+          db.all('SELECT * FROM buyins WHERE playerId = ?', [player.id], (err, buyIns) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            db.all('SELECT * FROM cashouts WHERE playerId = ?', [player.id], (err, cashOuts) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              resolve({ ...player, buyIns, cashOuts });
+            });
+          });
+        });
+      });
+
+      Promise.all(playerPromises)
+        .then(playersWithTransactions => {
+          console.log('[Share] Successfully fetched table with players:', {
+            tableId,
+            playerCount: playersWithTransactions.length,
+            timestamp: new Date().toISOString()
+          });
+          res.json({ ...table, players: playersWithTransactions });
+        })
+        .catch(err => {
+          console.error('[Share] Error processing player transactions:', {
+            message: err.message,
+            code: err.code,
+            stack: err.stack,
+            tableId
+          });
+          res.status(500).json({ error: 'Error processing player data' });
+        });
+    });
+  });
+});
+
 // Serve static files from the React app (moved after API routes)
 app.use(express.static(path.join(__dirname, 'build')));
 
