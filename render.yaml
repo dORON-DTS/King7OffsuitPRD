@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: poker-management
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: serve -s build
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+    healthCheckPath: /
+    autoDeploy: true
+    plan: free 
