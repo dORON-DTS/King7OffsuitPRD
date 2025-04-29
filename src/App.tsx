@@ -105,7 +105,6 @@ const AppLayout = () => {
 
   return (
     <div className="App">
-<<<<<<< HEAD
       <AppBar 
         position="sticky" 
         sx={{ 
@@ -114,9 +113,6 @@ const AppLayout = () => {
           zIndex: (theme) => theme.zIndex.drawer + 1
         }}
       >
-=======
-      <AppBar position="static">
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         <Toolbar sx={{ position: 'relative', minHeight: { xs: 64, sm: 72 } }}>
           <IconButton component={RouterLink} to="/" edge="start" sx={{ p: 0 }}>
             <img src="/logo.png" alt="King 7 Offsuit Logo" className="app-logo" />
@@ -194,11 +190,7 @@ const AppLayout = () => {
           )}
         </Toolbar>
       </AppBar>
-<<<<<<< HEAD
       <Container maxWidth={false} sx={{ py: 2 }}>
-=======
-      <Container maxWidth="lg" sx={{ py: 2 }}>
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
         <Outlet />
       </Container>
     </div>
@@ -230,14 +222,10 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-<<<<<<< HEAD
     <Route
       path="/"
       element={<AppLayout />}
     >
-=======
-    <Route element={<AppLayout />}>
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       <Route index element={<LandingPage />} />
       <Route path="tableslist" element={<TableList />} />
       <Route path="tables" element={<TableList />} />
@@ -247,22 +235,12 @@ const router = createBrowserRouter(
         </ProtectedRoute>
       } />
       <Route path="share/:id" element={<SharedTableView />} />
-<<<<<<< HEAD
       <Route path="statistics" element={<StatisticsView />} />
-=======
-      <Route path="statistics" element={
-        <StatisticsView />
-      } />
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
       <Route path="users" element={
         <ProtectedRoute requiredRole="admin">
           <UserManagement />
         </ProtectedRoute>
       } />
-<<<<<<< HEAD
-      <Route path="groups" element={<Navigate to="/tables" replace />} />
-=======
->>>>>>> 9f3b28b883993b214415a4d9f59581c45756c51d
     </Route>
   )
 );
