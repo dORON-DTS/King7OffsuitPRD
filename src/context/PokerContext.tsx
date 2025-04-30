@@ -488,7 +488,8 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           name: data.name,
           smallBlind: Number(data.smallBlind),
           bigBlind: Number(data.bigBlind),
-          location: data.location || ''
+          location: data.location || '',
+          createdAt: data.createdAt.toISOString()
         }),
       });
 
@@ -507,14 +508,18 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const updatedTable = await response.json();
       console.log('[UPDATE TABLE] Table updated successfully:', updatedTable);
       
-      // Update tables state
+      // Update tables state with the correct date format
       setTables(prevTables => 
         prevTables.map(table => 
-          table.id === tableId ? { ...table, ...updatedTable } : table
+          table.id === tableId ? { 
+            ...table, 
+            ...updatedTable,
+            createdAt: new Date(updatedTable.createdAt) 
+          } : table
         )
       );
 
-      return updatedTable;
+      return { ...updatedTable, createdAt: new Date(updatedTable.createdAt) };
     } catch (error: any) {
       console.error('[UPDATE TABLE] Error updating table:', error);
       throw error;

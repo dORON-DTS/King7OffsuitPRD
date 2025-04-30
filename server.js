@@ -871,7 +871,7 @@ app.get('/api/tables/:id', authenticate, (req, res) => {
 // Update table
 app.put('/api/tables/:id', authenticate, authorize(['admin', 'editor']), async (req, res) => {
   const tableId = req.params.id;
-  const { name, smallBlind, bigBlind, location } = req.body;
+  const { name, smallBlind, bigBlind, location, createdAt } = req.body;
   const userId = req.user.id;
   const userRole = req.user.role;
 
@@ -936,10 +936,10 @@ app.put('/api/tables/:id', authenticate, authorize(['admin', 'editor']), async (
     await new Promise((resolve, reject) => {
       const updateQuery = `
         UPDATE tables 
-        SET name = ?, smallBlind = ?, bigBlind = ?, location = ?
+        SET name = ?, smallBlind = ?, bigBlind = ?, location = ?, createdAt = ?
         WHERE id = ?
       `;
-      db.run(updateQuery, [name, smallBlind, bigBlind, location, tableId], function(err) {
+      db.run(updateQuery, [name, smallBlind, bigBlind, location, createdAt, tableId], function(err) {
         if (err) {
           console.error('[UPDATE TABLE] Error updating table:', {
             tableId,
