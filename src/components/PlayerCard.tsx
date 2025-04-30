@@ -16,7 +16,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, tableId, onAddBuyIn, on
   const { removePlayer, disableShowMe } = usePoker();
 
   // Calculate total cashout
-  const totalCashout = player.cashOuts.reduce((sum, cashout) => sum + cashout, 0);
+  const totalCashout = player.cashOuts.reduce((sum, cashout) => sum + cashout.amount, 0);
   // Calculate balance (totalCashout - totalBuyIn)
   const balance = totalCashout - player.totalBuyIn;
 
