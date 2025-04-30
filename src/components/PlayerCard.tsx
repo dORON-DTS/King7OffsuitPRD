@@ -15,6 +15,11 @@ interface PlayerCardProps {
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, tableId, onAddBuyIn, onCashOut }) => {
   const { removePlayer, disableShowMe } = usePoker();
 
+  // Calculate total cashout
+  const totalCashout = player.cashOuts.reduce((sum, cashout) => sum + cashout, 0);
+  // Calculate balance (totalCashout - totalBuyIn)
+  const balance = totalCashout - player.totalBuyIn;
+
   return (
     <Card 
       sx={{ 
@@ -26,7 +31,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, tableId, onAddBuyIn, on
     >
       <CardContent>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <Typography variant="h6">{player.name}</Typography>
+          <Typography variant="h6">
+            {player.name}
+            {!player.active && <span style={{ fontSize: '0.8em', color: 'gray' }}> (Inactive)</span>}
+          </Typography>
           <div style={{ display: 'flex', gap: '8px' }}>
             <IconButton
               size="small"
@@ -56,13 +64,14 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, tableId, onAddBuyIn, on
           </div>
         </div>
 
-        <Typography variant="h4" align="center" sx={{ color: '#2196f3', my: 2 }}>
-          ${player.chips}
-        </Typography>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
           <Typography color="textSecondary">Total Buy In: ${player.totalBuyIn}</Typography>
-          <Typography color="textSecondary">Balance: ${player.chips}</Typography>
+          {!player.active && (
+            <>
+              <Typography color="textSecondary">Cashout: ${totalCashout}</Typography>
+              <Typography color="textSecondary">Balance: ${balance}</Typography>
+            </>
+          )}
         </div>
 
         <Button 
