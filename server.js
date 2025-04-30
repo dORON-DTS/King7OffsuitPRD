@@ -316,6 +316,61 @@ app.get('/api/tables', authenticate, (req, res) => {
   });
 });
 
+// Get all tables (public access)
+app.get('/api/public/tables', (req, res) => {
+  db.all('SELECT * FROM tables ORDER BY createdAt DESC', [], (err, tables) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    const tablePromises = tables.map(table => {
+      return new Promise((resolve, reject) => {
+        db.all('SELECT * FROM players WHERE tableId = ?', [table.id], (err, players) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          const playerPromises = players.map(player => {
+            return new Promise((resolve, reject) => {
+              db.all('SELECT * FROM buyins WHERE playerId = ?', [player.id], (err, buyIns) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+
+                db.all('SELECT * FROM cashouts WHERE playerId = ?', [player.id], (err, cashOuts) => {
+                  if (err) {
+                    reject(err);
+                    return;
+                  }
+
+                  resolve({ ...player, buyIns, cashOuts });
+                });
+              });
+            });
+          });
+
+          Promise.all(playerPromises)
+            .then(playersWithTransactions => {
+              resolve({ ...table, players: playersWithTransactions });
+            })
+            .catch(reject);
+        });
+      });
+    });
+
+    Promise.all(tablePromises)
+      .then(tablesWithPlayers => {
+        res.json(tablesWithPlayers);
+      })
+      .catch(err => {
+        res.status(500).json({ error: err.message });
+      });
+  });
+});
+
 // Create new table
 app.post('/api/tables', authenticate, authorize(['admin']), (req, res) => {
   const { name, smallBlind, bigBlind, location } = req.body;
