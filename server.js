@@ -1265,7 +1265,14 @@ app.get('/api/share/:id', (req, res) => {
 
 // Get unique player names from statistics
 app.get('/api/statistics/players', (req, res) => {
-  db.all('SELECT DISTINCT name FROM players ORDER BY name', [], (err, players) => {
+  const query = `
+    SELECT DISTINCT p.name 
+    FROM players p
+    INNER JOIN tables t ON p.tableId = t.id
+    ORDER BY p.name
+  `;
+  
+  db.all(query, [], (err, players) => {
     if (err) {
       console.error('[Statistics] Error fetching unique player names:', {
         error: err.message
