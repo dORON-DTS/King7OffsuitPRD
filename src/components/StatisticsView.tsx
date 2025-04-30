@@ -656,38 +656,25 @@ const StatisticsView: React.FC = () => {
 
         {/* Table Container */}
         <TableContainer 
-          component={Paper} 
           sx={{ 
-            width: '100%',
+            maxHeight: 'calc(100vh - 250px)',
             overflow: 'auto',
-            bgcolor: '#1e1e1e',
-            mb: 2,
-            '&::-webkit-scrollbar': {
-              width: '8px',
-              height: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: '#1e1e1e'
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: '#555',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              background: '#666'
+            '& .MuiTableCell-root': {
+              borderBottom: '1px solid rgba(81, 81, 81, 1)'
             }
           }}
         >
-          <Table stickyHeader sx={{ width: '100%' }} aria-labelledby="tableTitle" size="medium">
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell
                   sx={{
                     bgcolor: '#1e1e1e',
-                    width: '60px',
+                    width: '40px',
                     padding: '8px 16px',
                     position: 'sticky',
                     left: 0,
+                    top: 0,
                     zIndex: 3,
                     borderRight: '1px solid rgba(81, 81, 81, 1)',
                     '&:before': {
@@ -711,7 +698,8 @@ const StatisticsView: React.FC = () => {
                     padding: '8px 16px',
                     position: 'sticky',
                     left: 60,
-                    zIndex: 2,
+                    top: 0,
+                    zIndex: 3,
                     borderRight: '1px solid rgba(81, 81, 81, 1)',
                     '&:before': {
                       content: '""',
@@ -736,9 +724,20 @@ const StatisticsView: React.FC = () => {
                       width: headCell.width,
                       padding: '8px 16px',
                       whiteSpace: 'nowrap',
-                      position: headCell.id === 'name' ? 'sticky' : 'static',
+                      position: 'sticky',
+                      top: 0,
                       left: headCell.id === 'name' ? 100 : 'auto',
-                      zIndex: headCell.id === 'name' ? 2 : 1
+                      zIndex: headCell.id === 'name' ? 3 : 2,
+                      '&:before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'inherit',
+                        zIndex: -1
+                      }
                     }}
                   >
                     <TableSortLabel
