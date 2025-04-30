@@ -86,6 +86,7 @@ const TableDetail: React.FC = () => {
   // State for unique player names
   const [uniquePlayerNames, setUniquePlayerNames] = useState<string[]>([]);
   const [loadingNames, setLoadingNames] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Add inputValue state for Autocomplete
   const [playerNameInput, setPlayerNameInput] = useState('');
@@ -385,6 +386,11 @@ const TableDetail: React.FC = () => {
     setEditDialogOpen(false);
   };
 
+  const showTransientError = (message: string) => {
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(null), 3000);
+  };
+
   return (
     <Box sx={{ p: 2, maxWidth: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -416,6 +422,17 @@ const TableDetail: React.FC = () => {
       >
         <Alert severity="success" sx={{ width: '100%' }}>
           Share link copied to clipboard!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!errorMessage}
+        autoHideDuration={3000}
+        onClose={() => setErrorMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" sx={{ width: '100%' }}>
+          {errorMessage}
         </Alert>
       </Snackbar>
 
