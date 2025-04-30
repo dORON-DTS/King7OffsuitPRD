@@ -67,12 +67,14 @@ const TablesList: React.FC = () => {
         </Button>
       </Box>
 
-      <Grid container spacing={{ xs: 2, sm: 3 }}>
+      <Grid container spacing={2}>
         {tables.map((table) => (
-          <Grid item xs={12} sm={6} md={4} key={table.id}>
+          <Grid item xs={12} sm={6} md={4} lg={3} xl={2} key={table.id}>
             <Card 
               sx={{ 
-                height: '100%', 
+                height: '100%',
+                minHeight: '280px',
+                maxHeight: '280px',
                 display: 'flex', 
                 flexDirection: 'column',
                 bgcolor: '#1e1e1e',
@@ -86,58 +88,74 @@ const TablesList: React.FC = () => {
                 }
               }}
             >
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  justifyContent: 'space-between', 
-                  alignItems: { xs: 'flex-start', sm: 'center' },
-                  gap: { xs: 1, sm: 0 },
-                  mb: 2 
-                }}>
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      color: 'white',
-                      fontSize: { xs: '1.1rem', sm: '1.25rem' }
-                    }}
-                  >
-                    {table.name}
-                  </Typography>
-                  <Chip 
-                    label={table.isActive ? 'Active' : 'Inactive'} 
-                    color={table.isActive ? 'success' : 'default'}
-                    sx={{ 
-                      bgcolor: table.isActive ? '#4caf50' : '#757575',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      width: { xs: '100%', sm: 'auto' }
-                    }}
-                  />
-                </Box>
-
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Small Blind: {table.smallBlind}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Big Blind: {table.bigBlind}
-                  </Typography>
-                  {table.location && (
-                    <Typography variant="body2" color="text.secondary" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                      Location: {table.location}
+              <CardContent sx={{ 
+                flexGrow: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                p: 2
+              }}>
+                <Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: 1,
+                    mb: 2 
+                  }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        color: 'white',
+                        fontSize: '1.25rem',
+                        textAlign: 'center',
+                        mb: 1
+                      }}
+                    >
+                      {table.name}
                     </Typography>
-                  )}
+                    <Chip 
+                      label={table.isActive ? 'Active' : 'Inactive'} 
+                      color={table.isActive ? 'success' : 'default'}
+                      sx={{ 
+                        bgcolor: table.isActive ? '#4caf50' : '#757575',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        width: '100%'
+                      }}
+                    />
+                  </Box>
+
+                  <Box sx={{ 
+                    mb: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.5,
+                    alignItems: 'center'
+                  }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      Small Blind: {table.smallBlind}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      Big Blind: {table.bigBlind}
+                    </Typography>
+                    {table.location && (
+                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                        Location: {table.location}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
 
                 <Box sx={{ 
                   display: 'flex', 
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  justifyContent: 'space-between', 
-                  alignItems: { xs: 'stretch', sm: 'center' },
-                  gap: { xs: 1, sm: 0 }
+                  flexDirection: 'column',
+                  gap: 1,
+                  mt: 'auto'
                 }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255,255,255,0.7)',
+                    textAlign: 'center'
+                  }}>
                     Players: {table.players.length}
                   </Typography>
                   <Button
@@ -151,7 +169,7 @@ const TablesList: React.FC = () => {
                         borderColor: '#1565c0',
                         bgcolor: 'rgba(25,118,210,0.1)'
                       },
-                      width: { xs: '100%', sm: 'auto' }
+                      width: '100%'
                     }}
                   >
                     View Table
