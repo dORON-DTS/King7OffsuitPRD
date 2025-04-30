@@ -936,7 +936,7 @@ app.put('/api/tables/:id', authenticate, authorize(['admin', 'editor']), async (
     await new Promise((resolve, reject) => {
       const updateQuery = `
         UPDATE tables 
-        SET name = ?, smallBlind = ?, bigBlind = ?, location = ?, updatedAt = DATETIME('now')
+        SET name = ?, smallBlind = ?, bigBlind = ?, location = ?
         WHERE id = ?
       `;
       db.run(updateQuery, [name, smallBlind, bigBlind, location, tableId], function(err) {
