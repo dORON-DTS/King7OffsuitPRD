@@ -469,11 +469,15 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     tableId: string,
     data: { name: string; smallBlind: number; bigBlind: number; location: string; createdAt: Date }
   ) => {
+    console.log('[UPDATE TABLE] Attempting to update table:', { tableId, data });
     try {
       const token = getAuthToken();
       if (!token) {
         throw new Error('Authentication required');
       }
+
+      console.log('[UPDATE TABLE] Sending request to:', `${process.env.REACT_APP_API_URL}/api/tables/${tableId}`);
+      
       const response = await fetch(`${process.env.REACT_APP_API_URL}/api/tables/${tableId}`, {
         method: 'PUT',
         headers: {
@@ -481,25 +485,38 @@ export const PokerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          ...data,
-          createdAt: data.createdAt.toISOString()
+          name: data.name,
+          smallBlind: Number(data.smallBlind),
+          bigBlind: Number(data.bigBlind),
+          location: data.location || ''
         }),
       });
-      if (response.ok) {
-        setTables(prev =>
-          prev.map(table =>
-            table.id === tableId
-              ? { ...table, ...data, createdAt: new Date(data.createdAt) }
-              : table
-          )
-        );
-      } else {
-        if (response.status === 401 || response.status === 403) {
-          showTransientError('You do not have permission to perform this action');
-        }
+
+      console.log('[UPDATE TABLE] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+        console.error('[UPDATE TABLE] Server error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(`Failed to update table: ${errorData.error || response.statusText}`);
       }
-    } catch (error) {
-      console.error('Error updating table:', error);
+
+      const updatedTable = await response.json();
+      console.log('[UPDATE TABLE] Table updated successfully:', updatedTable);
+      
+      // Update tables state
+      setTables(prevTables => 
+        prevTables.map(table => 
+          table.id === tableId ? { ...table, ...updatedTable } : table
+        )
+      );
+
+      return updatedTable;
+    } catch (error: any) {
+      console.error('[UPDATE TABLE] Error updating table:', error);
       throw error;
     }
   };

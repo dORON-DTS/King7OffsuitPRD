@@ -868,6 +868,129 @@ app.get('/api/tables/:id', authenticate, (req, res) => {
   });
 });
 
+// Update table
+app.put('/api/tables/:id', authenticate, authorize(['admin', 'editor']), async (req, res) => {
+  const tableId = req.params.id;
+  const { name, smallBlind, bigBlind, location } = req.body;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  console.log('[UPDATE TABLE] Received request:', {
+    tableId,
+    userId,
+    userRole,
+    requestBody: req.body,
+    path: req.path,
+    method: req.method,
+    headers: {
+      ...req.headers,
+      authorization: req.headers.authorization ? 'Bearer ***' : undefined
+    }
+  });
+
+  try {
+    // Validate required fields
+    if (!name || !smallBlind || !bigBlind) {
+      console.warn('[UPDATE TABLE] Validation failed:', {
+        tableId,
+        userId,
+        missing: {
+          name: !name,
+          smallBlind: !smallBlind,
+          bigBlind: !bigBlind
+        }
+      });
+      return res.status(400).json({ error: 'Name, small blind, and big blind are required' });
+    }
+
+    // Check if table exists
+    const tableExists = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM tables WHERE id = ?', [tableId], (err, row) => {
+        if (err) {
+          console.error('[UPDATE TABLE] Error checking table existence:', {
+            tableId,
+            userId,
+            error: err.message
+          });
+          reject(err);
+          return;
+        }
+        console.log('[UPDATE TABLE] Table lookup result:', {
+          tableId,
+          exists: !!row,
+          tableData: row
+        });
+        resolve(row !== undefined);
+      });
+    });
+
+    if (!tableExists) {
+      console.warn('[UPDATE TABLE] Table not found:', {
+        tableId,
+        userId
+      });
+      return res.status(404).json({ error: 'Table not found' });
+    }
+
+    // Update table
+    await new Promise((resolve, reject) => {
+      const updateQuery = `
+        UPDATE tables 
+        SET name = ?, smallBlind = ?, bigBlind = ?, location = ?, updatedAt = DATETIME('now')
+        WHERE id = ?
+      `;
+      db.run(updateQuery, [name, smallBlind, bigBlind, location, tableId], function(err) {
+        if (err) {
+          console.error('[UPDATE TABLE] Error updating table:', {
+            tableId,
+            userId,
+            error: err.message
+          });
+          reject(err);
+          return;
+        }
+        console.log('[UPDATE TABLE] Table updated successfully:', {
+          tableId,
+          userId,
+          changes: this.changes
+        });
+        resolve();
+      });
+    });
+
+    // Get updated table
+    const updatedTable = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM tables WHERE id = ?', [tableId], (err, row) => {
+        if (err) {
+          console.error('[UPDATE TABLE] Error fetching updated table:', {
+            tableId,
+            userId,
+            error: err.message
+          });
+          reject(err);
+          return;
+        }
+        console.log('[UPDATE TABLE] Sending response:', {
+          tableId,
+          userId,
+          updatedTable: row
+        });
+        resolve(row);
+      });
+    });
+
+    res.json(updatedTable);
+  } catch (error) {
+    console.error('[UPDATE TABLE] Unexpected error:', {
+      tableId,
+      userId,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Add a new endpoint to update passwords
 app.post('/api/update-passwords', authenticate, authorize(['admin']), (req, res) => {
   console.log('[Password Update] Starting password update process');
