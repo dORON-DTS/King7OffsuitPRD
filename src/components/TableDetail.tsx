@@ -122,26 +122,26 @@ const TableDetail: React.FC = () => {
   // Fetch unique player names when dialog opens
   useEffect(() => {
     if (openDialog) {
-      setLoadingNames(true);
-      fetch(`${process.env.REACT_APP_API_URL}/api/players/unique-names`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setUniquePlayerNames(data);
-          } else {
-            console.error("Received non-array data for unique names:", data);
-            setUniquePlayerNames([]);
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching unique player names:', error);
-          setUniquePlayerNames([]); // Clear names on error
-        })
-        .finally(() => {
-          setLoadingNames(false);
-        });
+      fetchUniquePlayerNames();
     }
-  }, [openDialog]); // Re-fetch when dialog opens
+  }, [openDialog]);
+
+  const fetchUniquePlayerNames = async () => {
+    try {
+      setLoadingNames(true);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/statistics/players`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch player names');
+      }
+      const names = await response.json();
+      setUniquePlayerNames(names);
+    } catch (error) {
+      console.error('Error fetching player names:', error);
+      showTransientError('Failed to load player names');
+    } finally {
+      setLoadingNames(false);
+    }
+  };
 
   // Fetch table data when id changes
   useEffect(() => {

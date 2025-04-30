@@ -1263,6 +1263,22 @@ app.get('/api/share/:id', (req, res) => {
   });
 });
 
+// Get unique player names from statistics
+app.get('/api/statistics/players', (req, res) => {
+  db.all('SELECT DISTINCT name FROM players ORDER BY name', [], (err, players) => {
+    if (err) {
+      console.error('[Statistics] Error fetching unique player names:', {
+        error: err.message
+      });
+      res.status(500).json({ error: 'Failed to fetch player names' });
+      return;
+    }
+    
+    const playerNames = players.map(player => player.name);
+    res.json(playerNames);
+  });
+});
+
 // Serve static files from the React app (moved after API routes)
 app.use(express.static(path.join(__dirname, 'build')));
 
